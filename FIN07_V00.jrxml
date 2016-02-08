@@ -1,0 +1,623 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 5.6.2.final using JasperReports Library version 5.6.1  -->
+<!-- 2014-10-29T14:44:02 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN07_V00" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" whenResourceMissingType="Empty" uuid="87d48345-67d4-4a89-afdf-c05201e58747">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="9"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageFooter"/>
+	<parameter name="man_cons_account_id" class="java.lang.Integer"/>
+	<parameter name="man_company_id" class="java.lang.Integer"/>
+	<parameter name="draft" class="java.lang.Boolean"/>
+	<parameter name="man_fiscalyear_id" class="java.lang.Integer"/>
+	<parameter name="man_period_fisc_id" class="java.lang.Integer"/>
+	<parameter name="Suppress0Lines" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[true]]></defaultValueExpression>
+	</parameter>
+	<parameter name="man_to_period_fisc_id" class="java.lang.Integer"/>
+	<queryString language="SQL">
+		<![CDATA[select 
+       t.code as level1,
+       t.name as level1_name,
+       t.level as conniv,
+       t.path as cons_path,
+       res_company.name as acccomp,
+	   a1.code,
+       a1.name,
+       case when substring(a1.code, 1, 1) < '6' then 'Balansrekening' else 'Resultatenrekening' end as account_type,
+       cc.name as company_name,
+       af.name as fiscalyear,
+       p_from.code as period_fisc,
+       p_to.code as to_period_fisc,
+       case when (
+       						select sum(debit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = true 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >=af.date_start
+       						    and 
+       						    p2.date_stop <= af.date_stop
+      					  ) IS NULL then 0.00
+            else 		  (
+							select sum(debit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = true 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >=af.date_start
+       						    and 
+       						    p2.date_stop <= af.date_stop
+						  ) end as opening_balance_debit,
+       case when (
+       						select sum(credit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = true 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >=af.date_start
+       						    and 
+       						    p2.date_stop <= af.date_stop
+      					  ) IS NULL then 0.00
+            else 		  (
+							select sum(credit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = true 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >=af.date_start
+       						    and 
+       						    p2.date_stop <= af.date_stop
+						  ) end as opening_balance_credit,
+       case when (
+							select sum(debit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= p_from.date_start
+       						    and 
+       						    p2.date_stop <= p_to.date_stop
+      					  ) IS NULL then 0.00
+            else 		  (
+							select sum(debit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= p_from.date_start
+       						    and 
+       						    p2.date_stop <= p_to.date_stop
+						  ) end as period_debit,
+       case when (
+							select sum(credit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= p_from.date_start
+       						    and 
+       						    p2.date_stop <= p_to.date_stop
+      					  ) IS NULL then 0.00
+            else 		  (
+							select sum(credit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= p_from.date_start
+       						    and 
+       						    p2.date_stop <= p_to.date_stop
+						  ) end as period_credit,
+       case when (
+							select sum(debit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= af.date_start
+        						    and 
+       						    p2.date_stop <= p_to.date_stop
+      					  ) IS NULL then 0.00
+            else 		  (
+							select sum(debit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= af.date_start
+        						    and 
+       						    p2.date_stop <= p_to.date_stop
+						  ) end as ytp_debit,
+       case when (
+							select sum(credit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= af.date_start
+        						    and 
+       						    p2.date_stop <= p_to.date_stop
+      					  ) IS NULL then 0.00
+            else 		  (
+							select sum(credit) 
+       						from account_move_line
+       						inner join account_period p2 on p2.id = account_move_line.period_id
+       						where 
+       							account_id = a1.id
+       						    and 
+       						    p2.special = false 
+       						    and 
+       						    ($P{draft} or account_move_line.state <> 'draft')
+       						    and 
+       						    p2.date_start >= af.date_start
+        						    and 
+       						    p2.date_stop <= p_to.date_stop
+						  ) end as ytp_credit
+from
+( WITH RECURSIVE q AS
+(
+SELECT  h, 1 AS level, ARRAY[cast(code as text)] AS breadcrumb
+FROM    account_account h
+INNER JOIN res_company on res_company.id = h.company_id
+WHERE  h.id = $P{man_cons_account_id}
+UNION ALL
+SELECT  hi, q.level + 1 AS level, breadcrumb || cast(code as text)
+FROM    q
+JOIN    account_account hi
+ON      hi.parent_id = (q.h).id
+)
+SELECT  REPEAT('  ', level-1) || (q.h).code as ind_code,
+(q.h).id,
+(q.h).code,
+(q.h).name,
+level,
+breadcrumb::VARCHAR AS path,
+(q.h).company_id
+FROM    q
+ORDER BY
+breadcrumb
+) as t
+   inner join account_account_consol_rel on account_account_consol_rel.child_id = t.id
+   inner join account_account a1 on a1.id = account_account_consol_rel.parent_id
+   inner join res_company cc on cc.id = $P{man_company_id}
+   inner join res_company on res_company.id = a1.company_id
+   inner join account_fiscalyear af on af.id = $P{man_fiscalyear_id}
+   inner join account_period p_from on p_from.id = $P{man_period_fisc_id}
+   inner join account_period p_to on p_to.id = $P{man_to_period_fisc_id}   
+order by cons_path, a1.code;]]>
+	</queryString>
+	<field name="code" class="java.lang.String">
+		<fieldDescription><![CDATA[Code]]></fieldDescription>
+	</field>
+	<field name="name" class="java.lang.String"/>
+	<field name="account_type" class="java.lang.String">
+		<fieldDescription><![CDATA[Account Type]]></fieldDescription>
+	</field>
+	<field name="level1" class="java.lang.String"/>
+	<field name="company_name" class="java.lang.String"/>
+	<field name="level1_name" class="java.lang.String"/>
+	<field name="period_fisc" class="java.lang.String">
+		<fieldDescription><![CDATA[Periods]]></fieldDescription>
+	</field>
+	<field name="opening_balance_debit" class="java.math.BigDecimal"/>
+	<field name="opening_balance_credit" class="java.math.BigDecimal"/>
+	<field name="period_debit" class="java.math.BigDecimal"/>
+	<field name="period_credit" class="java.math.BigDecimal"/>
+	<field name="ytp_debit" class="java.math.BigDecimal"/>
+	<field name="ytp_credit" class="java.math.BigDecimal"/>
+	<field name="conniv" class="java.lang.String"/>
+	<field name="cons_path" class="java.lang.String"/>
+	<field name="acccomp" class="java.lang.String"/>
+	<field name="to_period_fisc" class="java.lang.String"/>
+	<field name="fiscalyear" class="java.lang.String"/>
+	<variable name="overdracht" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[($F{opening_balance_debit} - $F{opening_balance_credit}
+ + $F{ytp_debit} - $F{ytp_credit}
+ - $F{period_debit} + $F{period_credit})]]></variableExpression>
+	</variable>
+	<variable name="saldo" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[($F{opening_balance_debit} - $F{opening_balance_credit} + $F{ytp_debit} - $F{ytp_credit})]]></variableExpression>
+	</variable>
+	<variable name="l1_overdracht" class="java.math.BigDecimal" resetType="Group" resetGroup="level1" calculation="Sum">
+		<variableExpression><![CDATA[$V{overdracht}]]></variableExpression>
+	</variable>
+	<variable name="l1_period_debit" class="java.math.BigDecimal" resetType="Group" resetGroup="level1" calculation="Sum">
+		<variableExpression><![CDATA[$F{period_debit}]]></variableExpression>
+	</variable>
+	<variable name="l1_period_credit" class="java.math.BigDecimal" resetType="Group" resetGroup="level1" calculation="Sum">
+		<variableExpression><![CDATA[$F{period_credit}]]></variableExpression>
+	</variable>
+	<variable name="l1_ytp_credit" class="java.math.BigDecimal" resetType="Group" resetGroup="level1" calculation="Sum">
+		<variableExpression><![CDATA[$F{ytp_credit}]]></variableExpression>
+	</variable>
+	<variable name="l1_ytp_debit" class="java.math.BigDecimal" resetType="Group" resetGroup="level1" calculation="Sum">
+		<variableExpression><![CDATA[$F{ytp_debit}]]></variableExpression>
+	</variable>
+	<variable name="l1_saldo" class="java.math.BigDecimal" resetType="Group" resetGroup="level1" calculation="Sum">
+		<variableExpression><![CDATA[$V{saldo}]]></variableExpression>
+	</variable>
+	<variable name="rpt_overdracht" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{overdracht}]]></variableExpression>
+	</variable>
+	<variable name="rpt_period_credit" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{period_credit}]]></variableExpression>
+	</variable>
+	<variable name="rpt_period_debit" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{period_debit}]]></variableExpression>
+	</variable>
+	<variable name="rpt_ytp_credit" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{ytp_credit}]]></variableExpression>
+	</variable>
+	<variable name="rpt_ytp_debit" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{ytp_debit}]]></variableExpression>
+	</variable>
+	<variable name="rpt_saldo" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{saldo}]]></variableExpression>
+	</variable>
+	<group name="level1">
+		<groupExpression><![CDATA[$F{level1}]]></groupExpression>
+		<groupHeader>
+			<band height="10">
+				<textField>
+					<reportElement x="0" y="0" width="45" height="10" uuid="8aa26473-676d-4879-92d2-0a55dbf7065f"/>
+					<textElement>
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{level1}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement x="45" y="0" width="120" height="10" isPrintWhenDetailOverflows="true" uuid="1c2670c1-51e0-4b7a-ae8b-80e89717918b"/>
+					<textElement>
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{level1_name}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="16">
+				<textField>
+					<reportElement x="0" y="0" width="165" height="10" uuid="76d681ba-8cbb-4897-ad1e-9db8862f48e1"/>
+					<textElement>
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Totaal van klasserekeningen " + $F{level1}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="15" width="555" height="1" uuid="d250a6e9-a484-4971-8600-f36be9ba3f1c"/>
+				</line>
+				<textField pattern="#,##0.00">
+					<reportElement x="295" y="0" width="65" height="10" uuid="ea700776-4590-4dc6-a7fa-8f19683ac7d5"/>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{l1_overdracht}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="360" y="0" width="65" height="10" uuid="792fcf98-417d-4c5c-8ae8-e8df67951924"/>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{l1_period_debit}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="425" y="0" width="65" height="10" uuid="a1ec94f5-c4b4-42d0-b474-2ce220b7318a"/>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{l1_period_credit}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#,##0.00">
+					<reportElement x="490" y="0" width="65" height="10" uuid="7276be30-25f9-431a-bc17-060951a9e218"/>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{l1_saldo}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="62" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="30" width="555" height="10" isRemoveLineWhenBlank="true" uuid="a750511a-ad6e-41af-b779-c4c1e3e4b769"/>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{draft} ? $R{FINPH.draft} : "")]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="555" height="20" uuid="782bd9b3-6b10-47e5-babd-c46a702c2a2b"/>
+				<textElement>
+					<font fontName="Arial" size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{company_name} + " - " + $R{FINT.consTrialbalance}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="21" width="555" height="9" isRemoveLineWhenBlank="true" uuid="aa6d6331-cca3-424e-ac4a-bf6aaf93302f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font fontName="Arial" size="7" isBold="false" isItalic="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FINPH.ManPeriodFiscId} + " " + $F{fiscalyear} +
+($F{period_fisc} == null ? "" : ": " + $F{period_fisc}) +
+($F{to_period_fisc} == null ? "" : " - " + $F{to_period_fisc})]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="48" width="555" height="1" uuid="0fc0c901-f6d7-42d4-8a91-5e120eb440fb"/>
+			</line>
+			<line>
+				<reportElement x="0" y="61" width="555" height="1" uuid="74a4fc5e-08b5-4e0b-8153-bfeda226fea9">
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+			</line>
+			<textField>
+				<reportElement x="0" y="50" width="45" height="10" uuid="4eed54f9-b429-418c-abf5-456f300e1a65">
+					<property name="net.sf.jasperreports.export.xls.auto.filter" value="Start"/>
+					<property name="net.sf.jasperreports.export.xls.freeze.row.edge" value="Bottom"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.account}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="45" y="50" width="250" height="10" uuid="caa85569-efa8-4bf5-81c0-635c5388fe50"/>
+				<textElement>
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.accountName}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="295" y="50" width="65" height="10" uuid="70b1d009-e8df-439d-99ab-4850b133a67e"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.balanceStart}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="360" y="50" width="65" height="10" uuid="0fcf54fe-b80e-4e7d-8ceb-6a478fe04e96"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.periodDB}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="425" y="50" width="65" height="10" uuid="a18c7891-b801-43c0-9030-2212eec8794a"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.periodCR}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="490" y="50" width="65" height="10" uuid="1dff9bf9-43f3-42c3-a5c3-6c78dc7c8836"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.balanceEnd}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="10" splitType="Stretch">
+			<printWhenExpression><![CDATA[$P{Suppress0Lines} != true ||
+$V{overdracht} != 0.00 ||
+$V{saldo} != 0.00 ||
+$F{period_debit} != 0.00 ||
+$F{period_credit} != 0.00 ||
+$F{ytp_debit} != 0.00 ||
+$F{ytp_credit} != 0.00]]></printWhenExpression>
+			<textField>
+				<reportElement x="0" y="0" width="45" height="10" uuid="d50d1b7e-c055-4820-b3b2-ed5e973e9275">
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{code}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="165" y="0" width="130" height="10" isPrintWhenDetailOverflows="true" uuid="ee34a3f8-8885-46a5-9ad5-da5f7a989ad8">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="295" y="0" width="65" height="10" uuid="43674bc2-15a1-423e-b1c7-640f78067252">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{overdracht}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="360" y="0" width="65" height="10" uuid="b93eae17-6d99-440c-8bd3-9bb01623cad7">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{period_debit}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="425" y="0" width="65" height="10" uuid="f7837bec-5dc1-488a-a006-008439480d32">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{period_credit}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="490" y="0" width="65" height="10" uuid="6009435a-5295-479d-80c6-49bd30713745">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{saldo}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="45" y="0" width="120" height="10" isPrintWhenDetailOverflows="true" uuid="5ff2d146-1265-4808-a7c9-edc30f1da74b">
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{acccomp}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="14" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<textField>
+				<reportElement x="360" y="5" width="166" height="9" uuid="db5f1c17-ed14-41ff-80eb-81ab14dda3e4">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.page} + " "+$V{PAGE_NUMBER}+" /"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="527" y="5" width="28" height="9" uuid="b674a369-9bc5-4a94-bc76-3b9ff8e3f305">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="16" splitType="Stretch">
+			<textField pattern="#,##0.00">
+				<reportElement x="360" y="0" width="65" height="10" uuid="792fcf98-417d-4c5c-8ae8-e8df67951924"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{rpt_period_debit}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="15" width="555" height="1" uuid="d250a6e9-a484-4971-8600-f36be9ba3f1c"/>
+			</line>
+			<textField pattern="#,##0.00">
+				<reportElement x="425" y="0" width="65" height="10" uuid="a1ec94f5-c4b4-42d0-b474-2ce220b7318a"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{rpt_period_credit}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="165" height="10" uuid="76d681ba-8cbb-4897-ad1e-9db8862f48e1"/>
+				<textElement>
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.total}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="490" y="0" width="65" height="10" uuid="7276be30-25f9-431a-bc17-060951a9e218"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{rpt_saldo}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00">
+				<reportElement x="295" y="0" width="65" height="10" uuid="ea700776-4590-4dc6-a7fa-8f19683ac7d5"/>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{rpt_overdracht}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

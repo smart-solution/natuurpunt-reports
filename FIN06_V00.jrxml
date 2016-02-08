@@ -1,0 +1,512 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.0.0.final using JasperReports Library version 6.0.0  -->
+<!-- 2015-01-06T15:10:13 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN06_V00" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="297f9929-c60d-4b88-91f5-3875e4752606">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="openerp"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.2" value="pageFooter"/>
+	<parameter name="period_id" class="java.lang.Integer">
+		<parameterDescription><![CDATA[]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="to_period_id" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="man_an_account_code" class="java.lang.String"/>
+	<parameter name="an_journal_id" class="java.lang.Integer"/>
+	<parameter name="account_id" class="java.lang.Integer"/>
+	<parameter name="to_account_id" class="java.lang.Integer"/>
+	<parameter name="man_company_id" class="java.lang.Integer"/>
+	<parameter name="all_comp" class="java.lang.Boolean"/>
+	<parameter name="an_children" class="java.lang.Boolean"/>
+	<queryString language="SQL">
+		<![CDATA[select t.id, t.code as code, t.niv, t.pad, t.company_name, t.company_id, 
+ a.id as al_id, a.amount, account_move.name as nummer, a.write_date as datum, a.ref as ref,
+ a.name as omschrijving,
+ ac.code as rekening,
+ account_period.code as period_name,
+ account_analytic_journal.name as an_jrnl_name,
+ account_analytic_account.name as an_name
+from
+( WITH RECURSIVE q AS
+   (
+    SELECT h, 1 AS niv, ARRAY[h.code] AS breadcrumb, res_company.name as company_name,
+    res_company.id as company_id
+    FROM    account_analytic_account h
+    INNER JOIN res_company on res_company.id = h.company_id
+    WHERE
+		  h.code = $P{man_an_account_code}
+      and
+          (
+          	$P{all_comp}
+          	or
+          	(not($P{all_comp}) and res_company.id = $P{man_company_id})
+          )
+    UNION ALL
+    SELECT  hi, q.niv + 1 AS niv, breadcrumb || hi.code AS breadcrumb, res_company.name as company_name,
+    res_company.id as company_id
+    FROM    q
+    INNER JOIN account_analytic_account hi ON hi.parent_id = (q.h).id
+    INNER JOIN res_company on res_company.id = hi.company_id
+    WHERE $P{an_children}
+   )
+   SELECT
+   (q.h).id as id,
+   (q.h).code as code,
+   niv as niv,
+   breadcrumb::VARCHAR AS pad,
+   company_name as company_name,
+   company_id as company_id
+   FROM    q
+   ORDER BY
+   breadcrumb
+) as t
+LEFT OUTER JOIN    account_analytic_line a ON a.account_id = t.id
+LEFT OUTER JOIN    account_account ac ON ac.id = a.general_account_id
+LEFT OUTER JOIN    account_analytic_journal on account_analytic_journal.id = a.journal_id
+LEFT OUTER JOIN    account_move_line on account_move_line.id = a.move_id
+LEFT OUTER JOIN    account_period on account_period.id = account_move_line.period_id
+LEFT OUTER JOIN    account_fiscalyear on account_fiscalyear.id = account_period.fiscalyear_id
+LEFT OUTER JOIN    account_move on account_move.id = account_move_line.move_id
+LEFT OUTER JOIN    account_analytic_account on account_analytic_account.id = t.id
+LEFT OUTER JOIN    account_account ac_from on ac_from.id = $P{account_id}
+LEFT OUTER JOIN    account_account ac_to on ac_to.id = $P{to_account_id}
+LEFT OUTER JOIN    account_analytic_journal aaj_parm on aaj_parm.id = $P{an_journal_id}
+WHERE
+       	(
+			(
+       		$P{period_id} IS NULL and $P{to_period_id} IS NULL
+
+			)
+			or
+       		(
+        	NOT($P{period_id} IS NULL) and $P{to_period_id} IS NULL
+        	and account_period.date_start >= (select account_period.date_start from account_period
+                                          		where account_period.id = $P{period_id})
+        	and account_period.date_stop <= (select account_period.date_stop from account_period
+                                          		where account_period.id = $P{period_id})
+            and account_period.special =  (select account_period.special from account_period
+                                          		where account_period.id = $P{period_id})                              	
+       		)
+			or
+       		(
+       	 	NOT($P{period_id} IS NULL) and NOT($P{to_period_id} IS NULL)
+        	and account_period.date_start >= (select account_period.date_start from account_period
+                                          		where account_period.id = $P{period_id})
+        	and account_period.date_stop <= (select account_period.date_stop from account_period
+                                          		where account_period.id = $P{to_period_id})
+      		and 
+      			(
+      				(select account_period.special from account_period where account_period.id = $P{period_id})
+      				or
+      				(
+      					not(select account_period.special from account_period where account_period.id = $P{period_id})
+      					and
+      				 	not(account_period.special)
+      				 )
+      			)
+      		)
+		)
+   and 
+   (
+    $P{an_journal_id} IS NULL
+  	or 
+  	  (
+  	   NOT($P{an_journal_id} IS NULL) and account_analytic_journal.name = aaj_parm.name
+      )
+  	)
+  and
+   (
+       ($P{account_id} IS NULL and $P{to_account_id} IS NULL)
+       or
+       (NOT($P{account_id} IS NULL) and $P{to_account_id} IS NULL and ac.code = ac_from.code)
+       or
+       (NOT($P{account_id} IS NULL) and NOT($P{to_account_id} IS NULL) and ac.code >= ac_from.code and ac.code <= ac_to.code)
+   )
+     
+ORDER BY t.pad, rekening, datum, nummer]]>
+	</queryString>
+	<field name="code" class="java.lang.String">
+		<fieldDescription><![CDATA[Code]]></fieldDescription>
+	</field>
+	<field name="rekening" class="java.lang.String"/>
+	<field name="period_name" class="java.lang.String"/>
+	<field name="amount" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Amount]]></fieldDescription>
+	</field>
+	<field name="nummer" class="java.lang.String"/>
+	<field name="ref" class="java.lang.String">
+		<fieldDescription><![CDATA[Ref.]]></fieldDescription>
+	</field>
+	<field name="company_name" class="java.lang.String"/>
+	<field name="datum" class="java.sql.Timestamp"/>
+	<field name="an_jrnl_name" class="java.lang.String"/>
+	<field name="id" class="java.lang.Integer"/>
+	<field name="niv" class="java.lang.Integer"/>
+	<field name="pad" class="java.lang.String"/>
+	<field name="company_id" class="java.lang.Integer">
+		<fieldDescription><![CDATA[Company]]></fieldDescription>
+	</field>
+	<field name="al_id" class="java.lang.Integer"/>
+	<field name="omschrijving" class="java.lang.String"/>
+	<field name="an_name" class="java.lang.String"/>
+	<variable name="amount_rek" class="java.math.BigDecimal" resetType="Group" resetGroup="rekening" calculation="Sum">
+		<variableExpression><![CDATA[$F{amount}]]></variableExpression>
+	</variable>
+	<variable name="amount_cod" class="java.math.BigDecimal" resetType="Group" resetGroup="code" calculation="Sum">
+		<variableExpression><![CDATA[$F{amount}]]></variableExpression>
+	</variable>
+	<group name="code">
+		<groupExpression><![CDATA[$F{code}]]></groupExpression>
+		<groupFooter>
+			<band height="14">
+				<printWhenExpression><![CDATA[$V{amount_cod} != null]]></printWhenExpression>
+				<textField pattern="###0.00;-###0.00" isBlankWhenNull="true">
+					<reportElement x="650" y="0" width="46" height="9" uuid="f5309a58-5532-47e8-8d61-a49523b23231">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{amount_cod}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement mode="Transparent" x="0" y="0" width="90" height="9" uuid="1e1b29d9-9236-4f2d-abc3-32ed459f23d0">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{code}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="10" width="801" height="1" forecolor="#BFBFBF" uuid="b204c04e-f4b4-4cae-a6a1-c20b74cf831d">
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<textField>
+					<reportElement mode="Transparent" x="90" y="0" width="210" height="9" uuid="af7b9e87-cf67-4922-9baa-b23bc98d731f">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{an_name}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="rekening">
+		<groupExpression><![CDATA[$F{rekening}]]></groupExpression>
+		<groupFooter>
+			<band height="9">
+				<printWhenExpression><![CDATA[$F{rekening} != null]]></printWhenExpression>
+				<textField pattern="###0.00;-###0.00" isBlankWhenNull="true">
+					<reportElement x="650" y="0" width="46" height="9" uuid="899aeb2e-95fc-4f8c-8182-8e993c16a6e8">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right" verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{amount_rek}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="true">
+					<reportElement x="90" y="0" width="60" height="9" uuid="4eb272fc-d458-484b-9995-5197522b312d">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{rekening}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement mode="Transparent" x="0" y="0" width="90" height="9" uuid="5088972f-f11e-40b8-8b6c-f25f5154632e">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{code}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="41" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="802" height="20" uuid="0d94eff3-7a07-424d-a886-9309811aadba">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{all_comp} ? $R{FINPH.allComp} : $F{company_name}) + " - " + $R{FINT.analyticReport}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="11" splitType="Stretch">
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="0" y="0" width="90" height="9" uuid="b5481725-a329-4826-982d-91131b3517aa">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="net.sf.jasperreports.export.xls.freeze.row.edge" value="Bottom"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.anaccountCode}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="90" y="0" width="60" height="9" uuid="f60795fa-e49f-4ac0-9a9e-6468941f03c2">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.account}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="150" y="0" width="30" height="9" uuid="f4faed0e-c78a-49a2-b63c-2fd440bdfe2f">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.period}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="180" y="0" width="120" height="9" uuid="29b1c010-0d95-4f1f-bce0-de1f4bd62e39">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.journal}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="300" y="0" width="70" height="9" uuid="3a998ed0-f107-427a-8fed-bff91f05e334">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.moveName}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="370" y="0" width="40" height="9" uuid="9acaa3e5-3686-4c2a-82c3-303d93bb7f25">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.date}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="410" y="0" width="117" height="9" uuid="15daa55b-3c89-4e09-b039-09c3ba4f50a6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.anLineRef}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="FixRelativeToBottom" x="650" y="0" width="46" height="9" uuid="ab2c2633-225e-4e7f-831c-e846f6eb234c">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.amount}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="696" y="0" width="106" height="9" uuid="cefe7130-a7f7-43da-b0d0-402db09411f9">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<box leftPadding="3"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.companyName}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="527" y="0" width="123" height="9" uuid="29bb486b-43d3-425d-b450-25cd77cc52a3">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.anLineName}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="10" width="801" height="1" forecolor="#BFBFBF" uuid="47c7bc0a-7861-4e42-91e9-5a47e799d908">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="10" splitType="Stretch">
+			<printWhenExpression><![CDATA[$F{rekening} != null]]></printWhenExpression>
+			<textField>
+				<reportElement mode="Transparent" x="0" y="0" width="90" height="9" uuid="9950f16d-b1f4-480b-96ed-231325a1a7eb">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{code}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="300" y="1" width="70" height="9" uuid="92d3e201-e63f-4216-b009-db7d18485e35">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nummer}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="180" y="1" width="120" height="9" uuid="07bc9ac4-9756-4ae9-b358-c99b613af582">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{an_jrnl_name}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement x="650" y="0" width="46" height="9" uuid="7ba489d5-f21d-4db8-a238-adc5453b0bc9">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{amount}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="90" y="0" width="60" height="9" uuid="7d3b70db-f23b-4c6e-9649-2e2923d1f86d">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rekening}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="150" y="1" width="30" height="9" uuid="daab03a1-cb53-4d95-90f6-fdc177f71159">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{period_name}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="410" y="1" width="117" height="9" uuid="c4ea9223-7f62-469a-99e2-b46c22ea700b">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ref}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="370" y="1" width="40" height="9" uuid="79554fcc-7d42-41fc-97f9-aceca5016eb4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{datum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="696" y="0" width="106" height="9" uuid="78df69c6-a7ba-4d04-8a7b-bc04f9f90f5e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box leftPadding="3" rightPadding="0"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{company_name}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="527" y="1" width="123" height="9" uuid="c33084aa-eb2a-4367-b614-46c4934981c6">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{omschrijving}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="14" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<textField>
+				<reportElement x="656" y="5" width="118" height="9" uuid="6e1022f5-96cf-44f0-b65a-5aded16d3348">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.page} + " "+$V{PAGE_NUMBER}+" /"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="774" y="5" width="28" height="9" uuid="d4e5277e-9c08-4245-900f-d1438cca0317">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
+	</summary>
+</jasperReport>

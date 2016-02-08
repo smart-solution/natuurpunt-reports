@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 5.6.1.final using JasperReports Library version 5.6.1  -->
+<!-- 2014-09-30T16:09:05 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="extract_hr_info" pageWidth="4000" pageHeight="572" orientation="Landscape" columnWidth="4000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="e4c424fe-6d42-43d9-bea9-778403e85309">
+	<property name="ireport.zoom" value="3.0"/>
+	<property name="ireport.x" value="9351"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="smartsolution"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
+	<parameter name="company" class="java.lang.String"/>
+	<parameter name="startdat" class="java.sql.Date"/>
+	<parameter name="einddat" class="java.sql.Date"/>
+	<parameter name="an_account" class="java.lang.String"/>
+	<parameter name="an_children" class="java.lang.Boolean"/>
+	<queryString language="SQL">
+		<![CDATA[select  aal.date as date,
+	res_users.login as user,
+	aaa.name as analytic_account,
+	aaa.code as analytic_account_code,
+	project_task.name as task,
+	aal.name as description,
+	aal.unit_amount as hours,
+	aal.unit_amount / 8 as days,
+	htif.name as invoicable,
+	aaap.name as parent_analytic_account,
+	aaap.code as parent_analytic_account_code,
+	cast (date_part('year', aal.date) as text) as jaar,
+	cast (date_part('month', aal.date) as text) as maand,
+	cast (date_part('day', aal.date) as text) as dag,
+	cast (date_part('isoyear', aal.date) as text) as weekjaar,
+	cast (date_part('week', aal.date) as text) as week,
+	pp.name_template as product,
+	case when ai.number IS NULL then ai.name else ai.number end as invoice,
+	aal.productive as productive,
+	aal.lineamount_to_invoice as lineamount,
+	aaa.invoice_on_timesheets as invoice_on_timesheets,
+	aaa.quantity_budgeted as quantity_budgeted,
+	aal.to_invoice as to_invoice,
+	aaa.fix_price_invoices as fix_price_invoices,
+	aaa.amount_max as amount_max,
+	aaa.hours_qtt_est as hours_qtt_est
+from account_analytic_line aal 
+inner join res_company on res_company.id = aal.company_id 
+inner join account_analytic_account aaa on aaa.id = aal.account_id
+inner join product_product pp on pp.id = aal.product_id
+inner join account_analytic_journal aaj on aaj.id = aal.journal_id
+inner join res_users on res_users.id = aal.user_id
+left outer join account_analytic_account aaap on aaap.id = aaa.parent_id
+left outer join project_task on project_task.id = aal.task_id
+left outer join hr_timesheet_invoice_factor htif on htif.id = aal.to_invoice 
+left outer join account_invoice ai on ai.id = aal.invoice_id
+where
+      res_company.name = $P{company}
+ and
+ 	(
+ 		($P{startdat} IS NULL and $P{einddat} IS NULL)
+ 		or
+ 		(not($P{startdat} IS NULL) and $P{einddat} IS NULL
+ 			and aal.date >= $P{startdat}
+ 		)
+ 		or
+ 		(not($P{startdat} IS NULL) and not($P{einddat} IS NULL)
+ 			and aal.date >= $P{startdat} and aal.date <= $P{einddat}
+ 		)
+ 	)
+ and
+	 (
+       $P{an_account} IS NULL
+       or
+       ($P{an_children} AND
+         (aaa.code in ( WITH RECURSIVE q AS
+   							(
+							    SELECT h, 1 AS niv, ARRAY[h.code] AS breadcrumb, res_company.name as company_name,
+							    res_company.id as company_id
+							    FROM    account_analytic_account h
+							    INNER JOIN res_company on res_company.id = h.company_id
+							    WHERE
+										h.code = $P{an_account}
+							      and
+							          	res_company.name = $P{company}
+							    UNION ALL
+							    SELECT  hi, q.niv + 1 AS niv, breadcrumb || hi.code AS breadcrumb, res_company.name as company_name,
+							    res_company.id as company_id
+							    FROM    q
+							    INNER JOIN account_analytic_account hi ON hi.parent_id = (q.h).id
+							    INNER JOIN res_company on res_company.id = hi.company_id
+							)
+							   SELECT
+							   (q.h).code as code
+							   FROM    q
+							   ORDER BY
+							   code
+							)
+						)
+	  )
+      or 
+      (
+      NOT($P{an_children}) AND
+        (aaa.code = $P{an_account})
+      )
+     )
+     and
+     aaj.type = 'general'
+order by date, user, analytic_account, task]]>
+	</queryString>
+	<field name="date" class="java.sql.Date">
+		<fieldDescription><![CDATA[Date End]]></fieldDescription>
+	</field>
+	<field name="user" class="java.lang.String"/>
+	<field name="analytic_account" class="java.lang.String">
+		<fieldDescription><![CDATA[Analytic account]]></fieldDescription>
+	</field>
+	<field name="task" class="java.lang.String"/>
+	<field name="description" class="java.lang.String"/>
+	<field name="hours" class="java.lang.Double">
+		<fieldDescription><![CDATA[Time Spent]]></fieldDescription>
+	</field>
+	<field name="invoicable" class="java.lang.String"/>
+	<field name="parent_analytic_account" class="java.lang.String"/>
+	<field name="analytic_account_code" class="java.lang.String"/>
+	<field name="parent_analytic_account_code" class="java.lang.String"/>
+	<field name="jaar" class="java.lang.String"/>
+	<field name="maand" class="java.lang.String"/>
+	<field name="dag" class="java.lang.String"/>
+	<field name="weekjaar" class="java.lang.String"/>
+	<field name="week" class="java.lang.String"/>
+	<field name="days" class="java.lang.Double"/>
+	<field name="product" class="java.lang.String"/>
+	<field name="productive" class="java.lang.String"/>
+	<field name="lineamount" class="java.lang.Double"/>
+	<field name="invoice" class="java.lang.String"/>
+	<field name="invoice_on_timesheets" class="java.lang.Boolean"/>
+	<field name="quantity_budgeted" class="java.lang.Double"/>
+	<field name="to_invoice" class="java.lang.Integer"/>
+	<field name="fix_price_invoices" class="java.lang.Boolean"/>
+	<field name="amount_max" class="java.lang.Double"/>
+	<field name="hours_qtt_est" class="java.lang.Double"/>
+	<variable name="est_total" class="java.lang.Double">
+		<variableExpression><![CDATA[($F{fix_price_invoices} ? $F{amount_max} : 0.00) + 
+($F{invoice_on_timesheets} ? $F{hours_qtt_est} : 0.00)]]></variableExpression>
+	</variable>
+	<variable name="productive_value" class="java.lang.Double">
+		<variableExpression><![CDATA[NOT(EQUALS($F{lineamount},CEIL(0))) ? 
+$F{lineamount}
+:
+(AND(EQUALS($F{productive},"yes"),$F{quantity_budgeted} != CEIL(0)) ?
+ $F{hours} * $V{est_total} / $F{quantity_budgeted} : 0)]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="10" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="100" height="10" uuid="149f416f-2ec6-4a70-82c9-6bdba6cbd364">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Date]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2300" y="0" width="50" height="10" uuid="47dd9f9a-5740-4f96-84d7-380daf52421b">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Invoicable]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1850" y="0" width="250" height="10" uuid="001580b2-acd2-44dd-bed8-e92c6c10ac3f">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Description]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2100" y="0" width="100" height="10" uuid="e0d83320-ddab-4dc9-9fda-2d6d54786664">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Hours]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1000" y="0" width="300" height="10" uuid="bc8a6541-ebd6-4451-b208-d35f2d0ec091">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Parent Analytic Account]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="400" y="0" width="200" height="10" uuid="056969e8-b47f-425c-964c-da5b55e51be2">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[User]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1450" y="0" width="200" height="10" uuid="53dde245-5c60-4839-aff5-219f4b7e1f35">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Analytic Account]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1650" y="0" width="200" height="10" uuid="cfa642da-c4c0-41f3-a3be-46580b526afb">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Task]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="100" y="0" width="100" height="10" uuid="28bfd017-d4f6-46b8-a068-f48fa1408373">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Month]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="200" y="0" width="100" height="10" uuid="4e249b58-e7f6-419c-8787-56c917e2b4fb">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Week]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="300" y="0" width="100" height="10" uuid="e2790636-17fc-45fa-a45f-7c4de7135d9e">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Day]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2200" y="0" width="100" height="10" uuid="adbb550b-3b6e-4f73-b30e-f7d54d68f459">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Days]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="600" y="0" width="250" height="10" uuid="82ad23ec-c0f4-47ff-b1af-9faaa24113fe">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Product]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="850" y="0" width="150" height="10" uuid="a0331537-c194-48fb-bcf7-2d543406c025">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Parent Reference]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1300" y="0" width="150" height="10" uuid="ea7c85d9-d043-45b1-a8f1-650b2b2249a2">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Reference]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2350" y="0" width="50" height="10" uuid="965d9406-7971-4171-afdc-2e2f8f7b3bc8">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Productive]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2400" y="0" width="100" height="10" uuid="3370ef87-2b37-4352-bb48-5b6eb1152056">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Amount to invoice]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2500" y="0" width="100" height="10" uuid="2dbbafdd-0aaf-44a2-8603-9f7a2554fa34">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Invoice]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2600" y="0" width="100" height="10" uuid="e3bfee7f-39e6-48ca-bddd-38b164fde26b">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<text><![CDATA[Productive Value]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="100" height="10" uuid="99a437e7-0c7f-4b48-9d52-fbc1626a0832">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{date}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2300" y="0" width="50" height="10" uuid="023b10d9-74da-406b-87b9-30efad14e255">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoicable}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="1000" y="0" width="300" height="10" uuid="b7c564f9-eb71-4707-949f-d95727976c64">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{parent_analytic_account}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="400" y="0" width="200" height="10" uuid="3cde888b-6545-45de-9fc6-f2e8dab88a0b">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8" pdfFontName="" pdfEncoding=""/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{user}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1450" y="0" width="200" height="10" uuid="ced79624-6dba-4c82-98af-52037feccb46">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8" pdfFontName="" pdfEncoding=""/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{analytic_account}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1650" y="0" width="200" height="10" uuid="c41ee889-f970-40b2-b75a-c013d22088ec">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{task}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1850" y="0" width="250" height="10" uuid="1ea1ae4d-6d56-4156-b2e5-658230cacabd">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{description}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2100" y="0" width="100" height="10" uuid="4699c38f-060a-4373-9a22-595ae2d69b6c">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{hours}]]></textFieldExpression>
+			</textField>
+			<textField pattern="" isBlankWhenNull="true">
+				<reportElement x="100" y="0" width="100" height="10" uuid="a831a5ad-0e07-4561-a5f1-9342072b8f26">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{jaar} + ($F{maand}.length() == 2 ? $F{maand} : "0" + $F{maand})]]></textFieldExpression>
+			</textField>
+			<textField pattern="yyyyww" isBlankWhenNull="true">
+				<reportElement x="200" y="0" width="100" height="10" uuid="83ac3907-8111-4212-8689-8192d7a10915">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{weekjaar} + ($F{week}.length() == 2 ? $F{week} : "0" + $F{week})]]></textFieldExpression>
+			</textField>
+			<textField pattern="yyyyMMdd" isBlankWhenNull="true">
+				<reportElement x="300" y="0" width="100" height="10" uuid="aef7102f-47e6-4f88-a687-07b3693e7b1a">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{jaar} + ($F{maand}.length() == 2 ? $F{maand} : "0" + $F{maand}) + ($F{dag}.length() == 2 ? $F{dag} : "0" + $F{dag})]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00#" isBlankWhenNull="true">
+				<reportElement x="2200" y="0" width="100" height="10" uuid="6d220a8c-fcdb-435e-aead-51db6fed7e07">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{days}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="600" y="0" width="250" height="10" uuid="249fddfd-a319-4ea4-af75-b21b439b6d4f">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{product}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="850" y="0" width="150" height="10" uuid="32005476-4fae-4315-a5f6-bb6df81e9f1f">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8" pdfFontName="" pdfEncoding=""/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{parent_analytic_account_code}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1300" y="0" width="150" height="10" uuid="d82115c0-2787-4f3a-a1ea-215c1c9c3629">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8" pdfFontName="" pdfEncoding=""/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{analytic_account_code}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2350" y="0" width="50" height="10" uuid="a8767994-e359-4013-9162-178c1722bc07">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{productive}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2400" y="0" width="100" height="10" uuid="695ad376-15a4-4284-a4d9-c49382b65f37">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{lineamount}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2500" y="0" width="100" height="10" uuid="b8151e1d-8421-40f2-ace7-ec232606451b">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#,##0.00#" isBlankWhenNull="true">
+				<reportElement x="2600" y="0" width="100" height="10" uuid="a36ccc8f-c40e-46fd-b3e1-cfe5c4b42097">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{productive_value}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

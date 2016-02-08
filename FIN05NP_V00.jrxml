@@ -1,0 +1,921 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.0.0.final using JasperReports Library version 6.0.0  -->
+<!-- 2014-12-15T10:30:11 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN05NP_V00" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="c4a187ad-f27e-4603-98e8-8f8399c011df">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt_validatie"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.1" value="pageHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.keep.first.band.2" value="columnHeader"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.3" value="pageFooter"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.band.4" value="groupFooter"/>
+	<property name="net.sf.jasperreports.export.xls.exclude.origin.group.4" value="category"/>
+	<parameter name="man_company_id" class="java.lang.Integer"/>
+	<parameter name="man_fiscalyear_id" class="java.lang.Integer"/>
+	<parameter name="man_period_fisc_id" class="java.lang.Integer"/>
+	<parameter name="draft" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[select account_asset_category.name as category_name,
+       min(account_asset_category.account_asset_id) as acc_invest,
+       min(account_asset_category.account_disinvestment_id) as acc_disinvest,
+       min(account_asset_category.account_gainloss_id) as acc_gainloss,
+       min(account_asset_category.account_depreciation_id) as acc_depreciation,
+       min(account_asset_category.account_expense_depreciation_id) as acc_expense_depreciation,
+       account_asset_asset.code as asset_code,
+       min(account_asset_asset.name) as asset_name,
+       min(account_asset_asset.purchase_date) as asset_purchase_date,
+       account_fiscalyear.code as year,
+       account_fiscalyear.id as yearid,
+       min(account_fiscalyear.date_start) as year_start,
+       min(account_fiscalyear.date_stop) as year_stop,
+       account_move_line.account_id as account,
+       sum(account_move_line.debit) as debit,
+       sum(account_move_line.credit) as credit,
+       min(res_company.name) as company_name,
+       min(account_asset_asset.period_depreciation_amount) as period_depreciation_amount,
+       min(account_asset_asset.method_number) as method_number,
+       min(account_asset_asset.method_period) as method_period,
+       min(ingavejaar.code) as fiscalyear,
+       min(ingaveperiode.code) as period_fisc
+from account_asset_category
+inner join account_asset_asset on account_asset_asset.category_id = account_asset_category.id
+inner join account_move_line on account_move_line.asset_id = account_asset_asset.id
+inner join account_move on account_move.id = account_move_line.move_id
+inner join res_company on res_company.id = account_move_line.company_id
+inner join account_period on account_period.id = account_move_line.period_id
+inner join account_fiscalyear on account_fiscalyear.id = account_period.fiscalyear_id
+inner join account_fiscalyear ingavejaar on ingavejaar.id = $P{man_fiscalyear_id}
+inner join account_period ingaveperiode on ingaveperiode.id = $P{man_period_fisc_id}
+where
+      res_company.id = $P{man_company_id}
+  and
+      (account_move_line.debit <> 0
+       or account_move_line.credit <> 0)
+  and
+      (
+      	$P{draft}
+      	or
+        NOT(account_move.state = 'draft')
+      )
+  and
+      account_period.date_stop <= ingaveperiode.date_stop
+   and
+      (account_asset_asset.method_end IS NULL or
+      account_asset_asset.method_end >= ingavejaar.date_start)
+group by category_name, asset_code, year, yearid,account
+order by category_name, asset_code, year, yearid,account]]>
+	</queryString>
+	<field name="category_name" class="java.lang.String"/>
+	<field name="acc_invest" class="java.lang.Integer"/>
+	<field name="acc_disinvest" class="java.lang.Integer"/>
+	<field name="acc_gainloss" class="java.lang.Integer"/>
+	<field name="acc_depreciation" class="java.lang.Integer"/>
+	<field name="acc_expense_depreciation" class="java.lang.Integer"/>
+	<field name="asset_code" class="java.lang.String"/>
+	<field name="asset_name" class="java.lang.String"/>
+	<field name="asset_purchase_date" class="java.sql.Date"/>
+	<field name="year" class="java.lang.String"/>
+	<field name="year_start" class="java.sql.Date"/>
+	<field name="year_stop" class="java.sql.Date"/>
+	<field name="account" class="java.lang.Integer"/>
+	<field name="debit" class="java.math.BigDecimal"/>
+	<field name="credit" class="java.math.BigDecimal"/>
+	<field name="company_name" class="java.lang.String"/>
+	<field name="period_depreciation_amount" class="java.lang.Double"/>
+	<field name="method_number" class="java.lang.Integer"/>
+	<field name="method_period" class="java.lang.Integer"/>
+	<field name="fiscalyear" class="java.lang.String"/>
+	<field name="period_fisc" class="java.lang.String"/>
+	<field name="yearid" class="java.lang.Integer"/>
+	<variable name="invest_prev" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_invest} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? 0 : $F{debit}-$F{credit} ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="invest_cur" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_invest} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? $F{debit}-$F{credit} : 0 ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="disinvest_cur" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_disinvest} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? $F{debit}-$F{credit} : 0 ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="disinvest_prev" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_disinvest} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? 0 : $F{debit}-$F{credit} ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="gainloss_cur" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_gainloss} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? $F{debit}-$F{credit} : 0 ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="gainloss_prev" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_gainloss} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? 0 : $F{debit}-$F{credit} ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="depreciation_cur" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? $F{credit}-$F{debit} : 0 ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="depreciation_prev" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? 0 : $F{debit}-$F{credit} ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="exp_depreciation_cur" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_expense_depreciation} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? $F{debit}-$F{credit} : 0 ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="exp_depreciation_prev" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($F{acc_expense_depreciation} == $F{account} ?
+( $F{yearid} == $P{man_fiscalyear_id} ? 0 : $F{debit}-$F{credit} ) : 0)]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="waarde_bbj" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{invest_prev}+$V{disinvest_prev}+$V{gainloss_prev}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="investering" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{invest_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="disinvestering" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[-$V{disinvest_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="waarde_ebj" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{invest_prev}+$V{disinvest_prev}+$V{gainloss_prev}+$V{invest_cur}+$V{disinvest_cur}+$V{gainloss_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="afschrijving_bbj" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[-$V{depreciation_prev}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="afschrijving" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{depreciation_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="afschrijving_ebj" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{afschrijving_bbj}+$V{afschrijving}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="meermin" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{gainloss_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="restwaarde" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{invest_prev}+$V{disinvest_prev}+$V{gainloss_prev}+$V{depreciation_prev}+$V{invest_cur}+$V{disinvest_cur}+$V{gainloss_cur}-$V{depreciation_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="waarde_bbj_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{waarde_bbj}]]></variableExpression>
+	</variable>
+	<variable name="investering_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{investering}]]></variableExpression>
+	</variable>
+	<variable name="disinvestering_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{disinvestering}]]></variableExpression>
+	</variable>
+	<variable name="waarde_ebj_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{waarde_ebj}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_bbj_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving_bbj}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_ebj_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving_ebj}]]></variableExpression>
+	</variable>
+	<variable name="meermin_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{meermin}]]></variableExpression>
+	</variable>
+	<variable name="restwaarde_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{restwaarde}]]></variableExpression>
+	</variable>
+	<variable name="waarde_bbj_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{waarde_bbj}]]></variableExpression>
+	</variable>
+	<variable name="investering_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{investering}]]></variableExpression>
+	</variable>
+	<variable name="disinvestering_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{disinvestering}]]></variableExpression>
+	</variable>
+	<variable name="waarde_ebj_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{waarde_ebj}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_bbj_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving_bbj}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_ebj_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving_ebj}]]></variableExpression>
+	</variable>
+	<variable name="meermin_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{meermin}]]></variableExpression>
+	</variable>
+	<variable name="restwaarde_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{restwaarde}]]></variableExpression>
+	</variable>
+	<variable name="boekwaarde_bbj" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{invest_prev}+$V{disinvest_prev}+$V{gainloss_prev}+$V{depreciation_prev}]]></variableExpression>
+	</variable>
+	<variable name="boekwaarde_bbj_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{boekwaarde_bbj}]]></variableExpression>
+	</variable>
+	<variable name="boekwaarde_bbj_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[$V{boekwaarde_bbj}]]></variableExpression>
+	</variable>
+	<variable name="depreciation_cred" class="java.math.BigDecimal" resetType="Group" resetGroup="asset">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{credit} : 0 )]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="depreciation_deb" class="java.math.BigDecimal" resetType="Group" resetGroup="asset">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{debit} : 0 )]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="depreciation_deb_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{debit} : 0 )]]></variableExpression>
+	</variable>
+	<variable name="depreciation_cred_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{credit} : 0 )]]></variableExpression>
+	</variable>
+	<variable name="depreciation_cred_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{credit} : 0 )]]></variableExpression>
+	</variable>
+	<variable name="depreciation_deb_1_1" class="java.math.BigDecimal" resetType="Group" resetGroup="category" calculation="Sum">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{debit} : 0 )]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_bbj_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving_bbj}]]></variableExpression>
+	</variable>
+	<variable name="depreciation_deb_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{debit} : 0 )]]></variableExpression>
+	</variable>
+	<variable name="restwaarde_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{restwaarde}]]></variableExpression>
+	</variable>
+	<variable name="disinvestering_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{disinvestering}]]></variableExpression>
+	</variable>
+	<variable name="waarde_ebj_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{waarde_ebj}]]></variableExpression>
+	</variable>
+	<variable name="investering_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{investering}]]></variableExpression>
+	</variable>
+	<variable name="waarde_bbj_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{waarde_bbj}]]></variableExpression>
+	</variable>
+	<variable name="depreciation_cred_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[($F{acc_depreciation} == $F{account} ? $F{credit} : 0 )]]></variableExpression>
+	</variable>
+	<variable name="boekwaarde_bbj_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{boekwaarde_bbj}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_ebj_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving_ebj}]]></variableExpression>
+	</variable>
+	<variable name="afschrijving_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{afschrijving}]]></variableExpression>
+	</variable>
+	<variable name="meermin_1_1_1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{meermin}]]></variableExpression>
+	</variable>
+	<variable name="afschr_periode" class="java.lang.Double" resetType="Group" resetGroup="asset">
+		<variableExpression><![CDATA[$F{period_depreciation_amount} == BigDecimal.valueOf(0) ? 
+(BigDecimal.valueOf($F{method_number}) * BigDecimal.valueOf($F{method_period})) / BigDecimal.valueOf(12) :
+($F{asset_purchase_date} == DATE(2014,01,01) ? 
+ $V{aanschafwaarde_1}/($F{period_depreciation_amount}*BigDecimal.valueOf(12)) : 
+ (BigDecimal.valueOf($F{method_number})*BigDecimal.valueOf($F{method_period}))/BigDecimal.valueOf(12))]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="aanschafwaarde" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{invest_prev}+$V{disinvest_prev}+$V{gainloss_prev}+$V{invest_cur}+$V{disinvest_cur}+$V{gainloss_cur}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="aanschafwaarde_1" class="java.math.BigDecimal" resetType="Group" resetGroup="asset" calculation="Sum">
+		<variableExpression><![CDATA[$V{aanschafwaarde}]]></variableExpression>
+	</variable>
+	<group name="category">
+		<groupExpression><![CDATA[$F{category_name}]]></groupExpression>
+		<groupHeader>
+			<band height="10">
+				<textField>
+					<reportElement x="43" y="0" width="201" height="10" uuid="23118cd3-7116-4aa9-8f1c-f61af3d83713">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{category_name}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="15">
+				<textField>
+					<reportElement x="43" y="0" width="201" height="10" uuid="a49feae7-dbff-4656-a87d-2815627bd9fd">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unity" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{category_name}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="574" y="0" width="64" height="10" uuid="aabfd722-7625-4a72-8cd2-68f444a5551d">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{waarde_ebj_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="354" y="0" width="55" height="10" uuid="2acd95c2-aa13-4e4d-805d-e28f5ffa92b7">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{boekwaarde_bbj_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement stretchType="RelativeToBandHeight" x="464" y="0" width="55" height="10" uuid="4f2cfe69-ca85-4ec2-99b3-fee260728f16">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{disinvestering_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="409" y="0" width="55" height="10" uuid="7fb88cff-cf16-476c-8bee-971350922265">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{investering_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="693" y="0" width="55" height="10" uuid="8945a22a-21f9-4e00-a64a-e3c5b32f5d91">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{restwaarde_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="638" y="0" width="55" height="10" uuid="8f003646-d35b-4a5d-a98b-7bbba6eb0979">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{afschrijving_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement positionType="Float" x="299" y="0" width="55" height="10" uuid="2f7075ca-32d3-4bd9-bfec-b37c9f83137b">
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{waarde_bbj_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="519" y="0" width="55" height="10" uuid="1a8f5d7a-2ee3-4e29-ba14-cf17bc1d8904">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{meermin_1_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="0" y="0" width="43" height="10" uuid="d6c2e9e9-6a19-4e77-a709-87b2888917d1">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unity" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="8" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$R{FIN.total}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="asset">
+		<groupExpression><![CDATA[$F{asset_code}]]></groupExpression>
+		<groupHeader>
+			<band/>
+		</groupHeader>
+		<groupFooter>
+			<band height="10">
+				<textField>
+					<reportElement x="0" y="0" width="43" height="10" uuid="f1fc2d09-1d65-400e-b0c1-c361e1f83eac">
+						<property name="local_mesure_unity" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{asset_code}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="43" y="0" width="201" height="10" uuid="0c491bb6-8ea9-42d3-8745-3baa5b0ee5a3">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{asset_name}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement x="299" y="0" width="55" height="10" uuid="d4a165b6-5c63-410a-97bf-8aa2a8e5e8f5">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{waarde_bbj_1}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement x="409" y="0" width="55" height="10" uuid="20a4f870-ac48-43c7-9709-fd531646bfa4">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{investering_1}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement x="464" y="0" width="55" height="10" uuid="f133fe04-d64c-4c8a-854f-82e2a351bf87">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{disinvestering_1}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement x="574" y="0" width="64" height="10" uuid="c685d2d1-16e1-4309-93aa-c7ec4325ca44">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{waarde_ebj_1}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement x="354" y="0" width="55" height="10" uuid="9b0baaa8-c131-40bd-a141-5a2ea64aec74">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{boekwaarde_bbj_1}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="638" y="0" width="55" height="10" uuid="90a96eb5-422e-4271-a595-d301b427f353">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{afschrijving_1}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="true">
+					<reportElement x="693" y="0" width="55" height="10" uuid="80b1e1f8-6723-4c70-a322-c134f8f734c7">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{restwaarde_1}]]></textFieldExpression>
+				</textField>
+				<textField pattern="dd/MM/yyyy">
+					<reportElement x="244" y="0" width="55" height="10" uuid="1c47e9de-225f-450e-aa43-1fc663ad4dd3">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{asset_purchase_date}]]></textFieldExpression>
+				</textField>
+				<textField isBlankWhenNull="false">
+					<reportElement x="519" y="0" width="55" height="10" uuid="f91c0897-63d1-451a-9c47-908fb1cfc7c7">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{meermin_1}]]></textFieldExpression>
+				</textField>
+				<textField evaluationTime="Group" evaluationGroup="asset" pattern="#,##0" isBlankWhenNull="true">
+					<reportElement x="748" y="0" width="54" height="10" uuid="8cb43144-f2d1-46bb-9d0e-84fdc6c75f54">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="local_mesure_unity" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="8"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{afschr_periode}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="40" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<textField>
+				<reportElement x="0" y="30" width="802" height="10" uuid="6b65a665-9648-4c1b-9249-9864874aa779"/>
+				<textElement textAlignment="Left">
+					<font fontName="Arial" size="8" isBold="false" isItalic="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FINPH.periodFiscId} + " " + $F{fiscalyear} + ": " + $F{period_fisc}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="802" height="20" uuid="4d4bab81-7ab3-4b90-9d1a-8911aec11391">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="14" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{company_name} + " - " + $R{FINT.assets}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="2" width="43" height="24" uuid="d2fc2b60-47b1-49fa-8572-9778bfa1c568">
+					<property name="net.sf.jasperreports.export.xls.freeze.row.edge" value="Bottom"/>
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.asset}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="43" y="2" width="201" height="24" uuid="5961a5fa-461b-4015-b938-4e5cc97528a1">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetName}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="299" y="2" width="55" height="24" uuid="851a095f-fe55-4fed-8b8e-c9f8a5285006">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetPurchaseValueBBY}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="409" y="2" width="55" height="24" uuid="f3178051-46fd-44db-9528-2bc9df3a8704">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetInvest}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="464" y="2" width="55" height="24" uuid="325774d6-d9d4-41e0-99bf-42f807979006">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetDesinvest}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="574" y="2" width="64" height="24" uuid="541afe06-3fe4-4509-be67-94c520f60f86">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetTotal}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="354" y="2" width="55" height="24" uuid="fe2aa998-4ba2-42a7-8934-a9d7c6898b6e">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetRestValueBBY}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="638" y="2" width="55" height="24" uuid="aee1fd4f-380b-4d05-a873-a070d4bdb033">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetDeprecBY}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="693" y="2" width="55" height="24" uuid="54a07342-c344-49bc-9cee-487ee7dec421">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetRestValueEBY}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="244" y="2" width="55" height="24" uuid="9a5fcfbb-46a9-4215-bc9b-4e850b4b94d1">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetPurchaseDate}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="519" y="2" width="55" height="24" uuid="89ea5984-614c-4199-8016-3f27ef23e86c">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetGainLoss}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="748" y="2" width="54" height="24" uuid="c8cfd811-0241-4821-88f3-43b86d5d2bfd">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.assetDeprecPer}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<columnFooter>
+		<band splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
+	</columnFooter>
+	<pageFooter>
+		<band height="14" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<textField>
+				<reportElement x="656" y="5" width="118" height="9" uuid="52c38257-a443-4759-84c9-d21368d33a56">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.page} + " "+$V{PAGE_NUMBER}+" /"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="774" y="5" width="28" height="9" uuid="59d0d83c-bb89-4e62-82bd-7af6e468b4f5">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="13" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<textField>
+				<reportElement x="519" y="3" width="55" height="10" uuid="4806a7e3-2896-4ca0-8499-3907c51cf61c">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{meermin_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="354" y="3" width="55" height="10" uuid="60f4de09-d03f-4c37-81d8-bcd879bee32e">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{boekwaarde_bbj_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="464" y="3" width="55" height="10" uuid="758d8398-5c41-48ed-8df3-f26dd7c877ea">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{disinvestering_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="574" y="3" width="64" height="10" uuid="7de36aad-8b2c-4a97-a2ab-43cdaf80c6d0">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{waarde_ebj_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="693" y="3" width="55" height="10" uuid="e98f13b7-a7d6-41b6-813d-a22d92363f19">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{restwaarde_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" x="299" y="3" width="55" height="10" uuid="3737563c-cdd4-4ab6-b004-3c3b8cbc1507">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{waarde_bbj_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="409" y="3" width="55" height="10" uuid="8667c6df-0165-4f53-b8de-f34c1ad29e66">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{investering_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="638" y="3" width="55" height="10" uuid="23dab90a-fa8a-43aa-bb0f-b463cd009784">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{afschrijving_1_1_1}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="3" width="43" height="10" uuid="1bd114e6-9410-4b4e-9709-ed1645c5f323">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.total}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

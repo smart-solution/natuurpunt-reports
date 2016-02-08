@@ -1,0 +1,1032 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.0.0.final using JasperReports Library version 6.0.0  -->
+<!-- 2015-04-17T13:41:27 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN04_V00" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="773df0b9-679c-43b3-b2c3-fb7c2a394879">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="381"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="openerp"/>
+	<parameter name="man_company_id" class="java.lang.Integer"/>
+	<parameter name="partner_id" class="java.lang.Integer"/>
+	<parameter name="local_currency" class="java.lang.Boolean"/>
+	<parameter name="rec_account_id_list" class="java.util.Collection" nestedType="java.lang.Integer"/>
+	<parameter name="partnertype" class="java.lang.String"/>
+	<parameter name="draft" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[select case when res_partner.ref IS NULL
+            then res_partner.name
+            else res_partner.ref
+       end as partner_ref,
+       res_partner.name as partner_name,
+       res_partner.phone as partner_phone,
+       (select acc_number from res_partner_bank where res_partner_bank.partner_id = res_partner.id limit 1) as partner_bank,
+       case when account_account.type = 'receivable' then 'Klanten' 
+       																				else  case when account_account.type = 'payable'  then 'Leveranciers' 
+       																				          else 'Andere' 
+       																				          end
+       																				end as aged_type,
+       case when $P{local_currency}
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end  as invoice_residual,
+       account_move.name as invoice_number,
+       cast(aml1.date as date) as invoice_date,
+       case when not(aml1.date_maturity IS NULL) then aml1.date_maturity       
+               when not(aml1.reconcile_partial_id IS NULL)
+               then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+               else cast(aml1.date as date) 
+               end as invoice_duedate,
+	   account_account.code as rec_account,
+       aml1.name as invoice_comment,
+       case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                            
+                                     when not(aml1.reconcile_partial_id IS NULL)
+                                     then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                    else cast(aml1.date as date) end) < (now() - interval '90 day')
+	            then case when $P{local_currency}
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as invoice_overdue_90,
+		case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity
+                            
+                                     when not(aml1.reconcile_partial_id IS NULL)
+                                     then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                    else cast(aml1.date as date) end) < (now() - interval '60 day') 
+                             and (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                       
+                                                when not(aml1.reconcile_partial_id IS NULL)
+                                                then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                               else cast(aml1.date as date) end) >= (now() - interval '90 day')
+	            then case when $P{local_currency} 
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as invoice_overdue_60,
+	       case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                
+                                        when not(aml1.reconcile_partial_id IS NULL)
+                                        then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                        else cast(aml1.date as date) end) < (now() - interval '30 day') 
+                               and (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity
+                                        
+                                                 when not(aml1.reconcile_partial_id IS NULL)
+                                                 then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                                else cast(aml1.date as date) end) >= (now() - interval '60 day')
+	            then case when $P{local_currency}
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as invoice_overdue_30,
+	       case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                
+                                        when not(aml1.reconcile_partial_id IS NULL)
+                                        then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                        else cast(aml1.date as date) end) < (now() - interval '00 day')
+                                and (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                        
+                                                 when not(aml1.reconcile_partial_id IS NULL)
+                                                 then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                                else cast(aml1.date as date) end) >= (now() - interval '30 day')
+	            then case when $P{local_currency}
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as invoice_overdue_0,
+	       case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                
+                                        when not(aml1.reconcile_partial_id IS NULL)
+                                        then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                        else cast(aml1.date as date) end) < (now() + interval '30 day') 
+                                and (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                        
+                                                 when not(aml1.reconcile_partial_id IS NULL)
+                                                 then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                                else cast(aml1.date as date) end) >= (now() + interval '00 day')
+	            then case when $P{local_currency}
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as invoice_due_30,
+		   case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                
+                                        when not(aml1.reconcile_partial_id IS NULL)
+                                        then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                        else cast(aml1.date as date) end) < (now() + interval '60 day') 
+                                and (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                        
+                                                 when not(aml1.reconcile_partial_id IS NULL)
+                                                 then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                                else cast(aml1.date as date) end) >= (now() + interval '30 day')
+	            then case when $P{local_currency} 
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as invoice_due_60,
+			case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                               
+                                        when not(aml1.reconcile_partial_id IS NULL)
+                                        then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                        else cast(aml1.date as date) end) < (now() + interval '90 day') 
+                                and (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                        
+                                                 when not(aml1.reconcile_partial_id IS NULL)
+                                                 then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                                else cast(aml1.date as date) end) >= (now() + interval '60 day')
+	            then case when $P{local_currency} 
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as  invoice_due_90,
+       		case when (case when not(aml1.date_maturity IS NULL) then aml1.date_maturity                                
+                                        when not(aml1.reconcile_partial_id IS NULL)
+                                        then (select aml2.date_maturity from account_move_line aml2 where aml1.reconcile_partial_id = aml2.reconcile_partial_id and not(aml2.date_maturity IS NULL) limit 1) 
+                                        else cast(aml1.date as date) end) >= (now() + interval '30 day') 
+	            then case when $P{local_currency}
+	                              then (debit - credit)
+	                              else case when aml1.currency_id = res_company.currency_id or aml1.currency_id IS NULL
+	                                              then (debit - credit) 
+	                                              else amount_currency 
+	                                              end
+	                              end                   
+	            else 0 
+	            end as  invoice_not_overdue,
+	   case when $P{local_currency} 
+	            then (select res_currency.name from res_currency where res_currency.id = res_company.currency_id) 
+	            else case when aml1.currency_id IS NULL
+	                             then (select res_currency.name from res_currency where res_currency.id = res_company.currency_id) 
+	                             else (select res_currency.name from res_currency where aml1.currency_id = res_currency.id) 
+	                             end
+	            end as invoice_currency,
+       cast(now() as date) as today,
+       res_company.name as company_name,
+       afl.sequence as aanm_level,
+       afp.date as aanm_date,
+       aml1.blocked as geen_aanm
+from account_move_line aml1
+inner join account_move on account_move.id = aml1.move_id
+inner join res_company on res_company.id = aml1.company_id
+inner join res_partner on res_partner.id = aml1.partner_id
+inner join account_account on account_account.id = aml1.account_id
+inner join account_journal on account_journal.id = aml1.journal_id
+left outer join account_followup_followup_line afl on afl.id = aml1.followup_line_id
+left outer join account_followup_followup af on af.id = afl.followup_id
+left outer join account_followup_print afp on afp.followup_id = af.id
+where res_company.id = $P{man_company_id}
+  and
+      ($P{draft}
+       OR
+       (NOT($P{draft}) and NOT(aml1.state = 'draft'))     
+      )
+  and ($X{IN, account_account.id, rec_account_id_list})
+  and account_account.reconcile
+  and (
+  			($P{partnertype} IS NULL)
+  	or		($P{partnertype} = 'KLANT' and res_partner.customer = TRUE )
+  	or		($P{partnertype} = 'LEV' and res_partner.supplier = TRUE)
+  		  )
+  and aml1.reconcile_id IS NULL
+  and ($P{partner_id} IS NULL or res_partner.id = $P{partner_id})
+order by aged_type, invoice_currency, rec_account, partner_ref, invoice_date, invoice_number;]]>
+	</queryString>
+	<field name="partner_ref" class="java.lang.String">
+		<fieldDescription><![CDATA[Supplier Reference]]></fieldDescription>
+	</field>
+	<field name="partner_name" class="java.lang.String">
+		<fieldDescription><![CDATA[Customer Name]]></fieldDescription>
+	</field>
+	<field name="partner_phone" class="java.lang.String">
+		<fieldDescription><![CDATA[Phone]]></fieldDescription>
+	</field>
+	<field name="partner_bank" class="java.lang.String"/>
+	<field name="aged_type" class="java.lang.String"/>
+	<field name="invoice_residual" class="java.math.BigDecimal"/>
+	<field name="invoice_number" class="java.lang.String"/>
+	<field name="invoice_date" class="java.sql.Date">
+		<fieldDescription><![CDATA[Invoice Date]]></fieldDescription>
+	</field>
+	<field name="invoice_duedate" class="java.sql.Date"/>
+	<field name="invoice_comment" class="java.lang.String"/>
+	<field name="invoice_overdue_90" class="java.math.BigDecimal"/>
+	<field name="invoice_overdue_60" class="java.math.BigDecimal"/>
+	<field name="invoice_overdue_30" class="java.math.BigDecimal"/>
+	<field name="invoice_overdue_0" class="java.math.BigDecimal"/>
+	<field name="invoice_due_30" class="java.math.BigDecimal"/>
+	<field name="invoice_due_60" class="java.math.BigDecimal"/>
+	<field name="invoice_due_90" class="java.math.BigDecimal"/>
+	<field name="invoice_not_overdue" class="java.math.BigDecimal"/>
+	<field name="invoice_currency" class="java.lang.String"/>
+	<field name="today" class="java.sql.Date"/>
+	<field name="company_name" class="java.lang.String"/>
+	<field name="rec_account" class="java.lang.String"/>
+	<field name="aanm_level" class="java.lang.Integer"/>
+	<field name="aanm_date" class="java.sql.Date"/>
+	<field name="geen_aanm" class="java.lang.Boolean"/>
+	<variable name="partner_residual" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_residual}]]></variableExpression>
+	</variable>
+	<variable name="partner_overdue_90" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_90}]]></variableExpression>
+	</variable>
+	<variable name="partner_overdue_60" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_60}]]></variableExpression>
+	</variable>
+	<variable name="partner_overdue_30" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_30}]]></variableExpression>
+	</variable>
+	<variable name="partner_overdue_0" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_0}]]></variableExpression>
+	</variable>
+	<variable name="partner_not_overdue" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_not_overdue}]]></variableExpression>
+	</variable>
+	<variable name="sum_residual" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_residual}]]></variableExpression>
+	</variable>
+	<variable name="sum_overdue_90" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_90}]]></variableExpression>
+	</variable>
+	<variable name="sum_overdue_0" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_0}]]></variableExpression>
+	</variable>
+	<variable name="sum_overdue_30" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_30}]]></variableExpression>
+	</variable>
+	<variable name="sum_not_overdue" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_not_overdue} + $F{invoice_due_30}]]></variableExpression>
+	</variable>
+	<variable name="sum_overdue_60" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_overdue_60}]]></variableExpression>
+	</variable>
+	<variable name="sum_overdue" class="java.lang.String" resetType="Group" resetGroup="rec_account">
+		<variableExpression><![CDATA[$V{sum_residual} - $V{sum_not_overdue}]]></variableExpression>
+	</variable>
+	<variable name="partner_due_90" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_due_90}]]></variableExpression>
+	</variable>
+	<variable name="partner_due_60" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_due_60}]]></variableExpression>
+	</variable>
+	<variable name="partner_due_30" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_due_30}]]></variableExpression>
+	</variable>
+	<variable name="sum_due_30" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_due_30}]]></variableExpression>
+	</variable>
+	<variable name="sum_due_60" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_due_60}]]></variableExpression>
+	</variable>
+	<variable name="sum_due_90" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_due_90}]]></variableExpression>
+	</variable>
+	<variable name="sum_overdue_plus90" class="java.math.BigDecimal" resetType="Group" resetGroup="rec_account" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_not_overdue}]]></variableExpression>
+	</variable>
+	<variable name="partner_overdue_plus90" class="java.math.BigDecimal" resetType="Group" resetGroup="partner_ref" calculation="Sum">
+		<variableExpression><![CDATA[$F{invoice_not_overdue}]]></variableExpression>
+	</variable>
+	<group name="Type" isStartNewPage="true">
+		<groupExpression><![CDATA[$F{aged_type}]]></groupExpression>
+	</group>
+	<group name="Currency">
+		<groupExpression><![CDATA[$F{invoice_currency}]]></groupExpression>
+		<groupHeader>
+			<band height="9">
+				<textField isBlankWhenNull="true">
+					<reportElement x="0" y="0" width="180" height="9" uuid="a0a4c0d7-8ae4-491d-a7b7-b4898ac46666">
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="7" isBold="true" isUnderline="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$R{FIN.currency} + ": " + $F{invoice_currency}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band>
+				<property name="local_mesure_unitheight" value="pixel"/>
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="rec_account">
+		<groupExpression><![CDATA[$F{rec_account}]]></groupExpression>
+		<groupHeader>
+			<band height="9">
+				<textField isBlankWhenNull="true">
+					<reportElement x="0" y="0" width="180" height="9" uuid="5f56a806-d812-49d5-8180-19f1af020801">
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="7" isBold="true" isUnderline="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$R{FIN.reconcileAccount} + ": " + $F{rec_account}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="50">
+				<textField pattern="#0.00">
+					<reportElement x="580" y="24" width="60" height="9" uuid="a354ec76-435d-4019-a64a-07ac8c04aa1f">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_overdue}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="640" y="24" width="60" height="9" uuid="d5c61ec2-13d4-4a27-8956-2adcc39304b5">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_not_overdue}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="640" y="10" width="60" height="9" uuid="06d76453-3843-4d88-af94-b8d0728b9a73">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_due_30}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="7" width="802" height="1" uuid="3cdb97a7-95ad-46e6-a3d7-4b61323a55ae"/>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<textField pattern="#0.00">
+					<reportElement x="460" y="10" width="60" height="9" uuid="0b481638-ca21-4556-bebd-422642c2ce84">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_overdue_60}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="801" y="8" width="1" height="16" uuid="993e984f-bef7-4da5-8537-70651b8fbee7"/>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<textField pattern="#0.00">
+					<reportElement x="340" y="24" width="60" height="9" uuid="2647fb16-fa8c-4585-bd32-5a5834e400fe">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_residual}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="0" y="10" width="340" height="9" uuid="dbe54a30-f56e-4397-956c-b8475d9dfba3">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right" markup="none">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$R{FIN.total} + " " +
+($F{rec_account} == null ? "" : $F{rec_account}) +
+($F{invoice_currency} == null ? "" : " in " + $F{invoice_currency})]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="580" y="10" width="60" height="9" uuid="fa8a1c44-a02a-4498-9118-0f34c1dff58a">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_overdue_0}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="7" width="1" height="16" uuid="6ab39358-f5e3-4901-908c-3a3182acc458">
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					</reportElement>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<textField pattern="#0.00">
+					<reportElement x="520" y="10" width="60" height="9" uuid="d63787e6-ce4b-409b-aaa0-4c07b91e4b65">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_overdue_30}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="400" y="10" width="60" height="9" uuid="b2b32df7-4fb1-49d3-9cbb-fca699c5ee8a">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_overdue_90}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="340" y="10" width="60" height="9" uuid="49314fc3-7ea4-413a-8d10-cebcef5676ef">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_residual}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="22" width="802" height="1" uuid="65001597-34f1-46c0-bdee-5d07dba33351"/>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<textField pattern="#0.00">
+					<reportElement x="700" y="10" width="60" height="9" uuid="2671c67f-036b-47c2-8d9c-b4acbc1f64e7">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_overdue_plus90}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<group name="partner_ref">
+		<groupExpression><![CDATA[$F{partner_ref}]]></groupExpression>
+		<groupHeader>
+			<band height="9">
+				<textField isBlankWhenNull="true">
+					<reportElement x="0" y="0" width="180" height="9" uuid="661ca0ad-f307-424a-932b-291a7f0c1ac3">
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{partner_ref} == null ? 
+($F{partner_name} == null ? "" : $F{partner_name})
+: ($F{partner_name} == null ? $F{partner_ref} : "[" + $F{partner_ref}.trim() + "] " + $F{partner_name})]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="180" y="0" width="220" height="9" uuid="be33fb74-7922-495c-a11d-50cda300ba08">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement>
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{partner_bank} == null ? 
+($F{partner_phone} == null ? "" : $R{FIN.phone} + ": " + $F{partner_phone}) :
+($F{partner_phone} == null ? $R{FIN.bank} + ": " + $F{partner_bank} : $R{FIN.bank} + ": " + $F{partner_bank} + " / " + $R{FIN.phone} + ": " + $F{partner_phone})]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="13">
+				<textField pattern="#0.00">
+					<reportElement x="400" y="0" width="60" height="9" uuid="f43ccb8a-5228-4a66-8353-3060694b529d">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="local_mesure_unitheight" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_overdue_90}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="340" y="0" width="60" height="9" uuid="b88734aa-98ef-4a8c-97dd-d743776fa16b">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="local_mesure_unitx" value="pixel"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_residual}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="460" y="0" width="60" height="9" uuid="7cce2a1d-5807-40c7-a1d7-fb9b5490e77a">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_overdue_60}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="520" y="0" width="60" height="9" uuid="fb397d53-1652-493e-bbaa-bab24ad2fd75">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_overdue_30}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="580" y="0" width="60" height="9" uuid="1abca130-2758-49c2-8669-eac9f3c80347">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_overdue_0}]]></textFieldExpression>
+				</textField>
+				<line>
+					<reportElement x="0" y="12" width="802" height="1" uuid="85e30069-2e28-4589-a4f1-e23c628cfe9b"/>
+					<graphicElement>
+						<pen lineWidth="0.5"/>
+					</graphicElement>
+				</line>
+				<textField pattern="#0.00">
+					<reportElement x="640" y="0" width="60" height="9" uuid="c1503a09-377f-44f3-90dc-97ecbb0f5e75">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_due_30}]]></textFieldExpression>
+				</textField>
+				<textField pattern="#0.00">
+					<reportElement x="700" y="0" width="60" height="9" uuid="c038dd1a-23b3-42b2-a194-8dd2f395082e">
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{partner_overdue_plus90}]]></textFieldExpression>
+				</textField>
+				<textField>
+					<reportElement x="0" y="0" width="340" height="9" uuid="9b4c97a7-d00b-439e-bdf5-4e674ff3280f">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Right" markup="none">
+						<font fontName="Arial" size="7" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$R{FIN.total} + 
+($F{partner_ref} == null ? 
+($F{partner_name} == null ? "" : $F{partner_name})
+: ($F{partner_name} == null ? $F{partner_ref} : "[" + $F{partner_ref}.trim() + "] " + $F{partner_name}))]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="45" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="802" height="14" uuid="d1a4c621-02a9-4d56-accd-525d703c9933">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement markup="none">
+					<font fontName="Arial" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{company_name} + " - " + ($F{aged_type} == "Leveranciers" ? $R{FINPH.debts} : $R{FINPH.claims})]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="20" width="80" height="9" uuid="64bc1f51-659c-440d-9806-a3da7c07ad3f">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font fontName="Arial" size="7" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.pivotDate} + ": "]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="400" y="33" width="60" height="9" uuid="e45314e6-ecac-48f2-a68a-50eb5cdea2c3">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["-90"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="460" y="33" width="60" height="9" uuid="9c3a724f-51c3-497f-a902-ed72130d250b">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["-90 " + $R{FIN.to} + " -61"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="520" y="33" width="60" height="9" uuid="1d573be1-5b67-495f-b75f-c148fcdd70ae">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["-60 " + $R{FIN.to} + " -31"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="580" y="33" width="60" height="9" uuid="2d9d2843-1247-4d68-99e8-1aab82a3a011">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["-30 " + $R{FIN.to} + " -1"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="700" y="33" width="60" height="9" uuid="45027488-fce6-4318-97ce-dc817678082a">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["+90"]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="0" y="44" width="802" height="1" uuid="0c47098d-3fc5-46d4-9a9c-7ccb48334ae7">
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement x="640" y="33" width="60" height="9" uuid="8c5e70fc-7471-4714-9aa7-f44add5ef6fb">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["0 " + $R{FIN.to} + " 29"]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy">
+				<reportElement x="80" y="20" width="100" height="9" uuid="83330c35-86e3-437b-93b4-1f0c74e09d3e">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font fontName="Arial" size="7" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{today}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="80" y="33" width="100" height="9" uuid="fecb8af8-496d-426e-bab0-ab1373134922">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.invoiceComment}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="240" y="33" width="60" height="9" uuid="10e91738-f912-4c88-8565-fcc9c2b79fb7">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.dateDue}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="180" y="33" width="60" height="9" uuid="4c7df778-5661-450d-a25a-0a7bdc2505f4">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.date}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="33" width="80" height="9" uuid="1297254f-b197-46e4-ac79-7cf8161a8882">
+					<property name="net.sf.jasperreports.export.xls.freeze.row.edge" value="Bottom"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.invoiceDoc}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="300" y="33" width="40" height="9" uuid="6c528360-fb84-4138-b747-bf0d9025145f">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.followupLevel}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="340" y="33" width="60" height="9" uuid="e7c4158c-f6d2-49e9-9b4d-8a841f9a1073">
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.followupDate}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="9" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="80" height="9" uuid="895b5101-f5f7-4234-8e72-fde14a06c83f">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_number}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="180" y="0" width="60" height="9" uuid="597c259e-17bb-4b02-82c2-e0bc17917f30">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_date}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="240" y="0" width="60" height="9" uuid="7a2d1785-ccf4-4a52-ac98-51043b8358a8">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_duedate}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="80" y="0" width="100" height="9" uuid="8985df1c-9385-4e82-8538-a3af5a35da8f">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_comment}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00">
+				<reportElement x="400" y="0" width="60" height="9" uuid="5798792f-6388-4690-b85a-14472d8b6c52">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_overdue_90}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00">
+				<reportElement x="460" y="0" width="60" height="9" uuid="0bf02354-c6c4-4052-b5a6-3f005b909e77">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_overdue_60}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00">
+				<reportElement x="520" y="0" width="60" height="9" uuid="77af3617-4e94-4cac-b69e-36aa33c92db9">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_overdue_30}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00">
+				<reportElement x="580" y="0" width="60" height="9" uuid="2dd7d49e-c37d-43b5-8ffd-1c092580f540">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_overdue_0}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00">
+				<reportElement x="640" y="0" width="60" height="9" uuid="4f0a362b-bb78-46e0-99d9-3512f3a986fd">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_due_30}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00">
+				<reportElement x="700" y="0" width="60" height="9" uuid="57077538-b60c-41ea-9381-f62bd96e48c5">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_not_overdue}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="760" y="0" width="42" height="9" uuid="b0185cd5-c973-455e-9029-30677eb89366">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box leftPadding="3"/>
+				<textElement textAlignment="Left">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invoice_currency}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="300" y="0" width="40" height="9" uuid="3855fb08-85a4-419c-bf90-5bec678ae6b6">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{aanm_level} == null ? 
+($F{geen_aanm} ? "GEEN" : "") :
+$F{aanm_level} + ($F{geen_aanm} ? " GEEN" : "")]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+				<reportElement x="340" y="0" width="60" height="9" uuid="af696219-766e-458d-9619-145c15735731">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{aanm_date}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="14" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<textField>
+				<reportElement x="656" y="5" width="118" height="9" uuid="6f51d6c0-3753-4198-89ab-c9c17d9b7a01">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$R{FIN.page} + " "+$V{PAGE_NUMBER}+" /"]]></textFieldExpression>
+			</textField>
+			<textField evaluationTime="Report">
+				<reportElement x="774" y="5" width="28" height="9" uuid="7166b60e-50f7-459a-8ac4-e78145f35d84">
+					<property name="local_mesure_unitheight" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font fontName="Arial" size="7"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $V{PAGE_NUMBER}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

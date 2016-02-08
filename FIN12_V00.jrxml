@@ -1,0 +1,979 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 5.6.2.final using JasperReports Library version 5.6.1  -->
+<!-- 2014-11-07T17:30:39 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN12_V00" language="groovy" pageWidth="4500" pageHeight="572" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="4500" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" resourceBundle="locsmartsolution" uuid="e4c424fe-6d42-43d9-bea9-778403e85309">
+	<property name="ireport.zoom" value="3.0"/>
+	<property name="ireport.x" value="9351"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="openerp"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<style name="Table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<subDataset name="Dataset1" resourceBundle="locsmartsolution" uuid="72c6aa53-1b7c-4438-812c-012f21e86b06">
+		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="openerp"/>
+		<parameter name="period_fisc_id" class="java.lang.Integer"/>
+		<parameter name="to_period_fisc_id" class="java.lang.Integer"/>
+		<parameter name="man_cons_account_id" class="java.lang.Integer"/>
+		<parameter name="man_company_id" class="java.lang.Integer"/>
+		<parameter name="man_fiscalyear_id" class="java.lang.Integer"/>
+		<parameter name="draft" class="java.lang.Boolean">
+			<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+		</parameter>
+		<queryString language="SQL">
+			<![CDATA[select 'detail' as line_level,
+       t.path as cons_path,
+       t.code as cons_acct,
+       t.name as cons_name,
+       account_move.name as move_name,
+       account_journal.code as journal_code,
+       account_journal.name as journal_name,
+       account_move_line.id as move_id,
+       res_partner.ref as partner_ref,
+       res_partner.name as partner_name,
+       res_partner.active as partner_status,
+       account_move_line.debit,
+       account_move_line.credit,
+       account_move.state as status,
+       0 as tax_amount,
+       account_move_line.date,
+       case when account_move_line.date_maturity IS NULL
+            then account_invoice.date_due
+            else account_move_line.date_maturity end as date_maturity,
+       account_account.code as account_code,
+       account_account.name as account_name,
+       account_move_line.ref as line_ref,
+       case when account_move_line.name = '/' or account_move_line.name like 'VAT%'
+           then ''
+           else account_move_line.name end as line_name,
+       account_period.name as period_name,
+       account_invoice.internal_number as invoice_number,
+       account_move_reconcile.name as reconcile_name,
+       res_company.name as company_name,
+       account_tax_code.code as tax_code,
+       account_tax_code.name as tax_name,
+       an_acc1.name as acc1_name,
+       an_acc1.code as acc1_code,
+       account_move_line.amount_currency as amount_currency,
+       res_currency.name as currency_name,
+       ap_from.name as period_from,
+       ap_to.name as period_to,
+       sel_year.code as sel_year
+from
+( WITH RECURSIVE q AS
+(
+SELECT  h, 1 AS level, ARRAY[cast(code as text)] AS breadcrumb
+FROM    account_account h
+WHERE  h.id = $P{man_cons_account_id}
+UNION ALL
+SELECT  hi, q.level + 1 AS level, breadcrumb || cast(code as text)
+FROM    q
+JOIN    account_account hi
+ON      hi.parent_id = (q.h).id
+)
+SELECT  REPEAT('  ', level-1) || (q.h).code as ind_code,
+(q.h).id,
+(q.h).code,
+(q.h).name,
+level,
+breadcrumb::VARCHAR AS path,
+(q.h).company_id
+FROM    q
+ORDER BY
+breadcrumb
+) as t
+   inner join account_account_consol_rel on account_account_consol_rel.child_id = t.id
+   inner join account_account on account_account.id = account_account_consol_rel.parent_id
+   inner join account_move_line on account_move_line.account_id = account_account.id
+   inner join account_move on account_move.id = account_move_line.move_id
+   inner join account_journal on account_journal.id = account_move.journal_id
+   inner join res_company on res_company.id = account_move.company_id
+   inner join account_period on account_period.id = account_move.period_id
+   inner join account_fiscalyear on account_fiscalyear.id = account_period.fiscalyear_id
+   left outer join res_currency on res_currency.id = account_move_line.currency_id
+   left outer join res_partner on res_partner.id = account_move_line.partner_id
+   left outer join account_tax_code on account_tax_code.id = account_move_line.tax_code_id
+   left outer join account_analytic_account an_acc1 on an_acc1.id = account_move_line.analytic_account_id
+   left outer join account_invoice on account_invoice.move_id = account_move.id
+   left outer join account_move_reconcile on account_move_reconcile.id = account_move_line.reconcile_id
+   left outer join account_period ap_from on ap_from.id = $P{period_fisc_id}
+   left outer join account_period ap_to on ap_to.id = $P{to_period_fisc_id}
+   left outer join account_fiscalyear sel_year on sel_year.id = $P{man_fiscalyear_id}
+where
+      (account_move_line.debit <> 0
+       or account_move_line.credit <> 0)
+  and 
+  		(
+  			$P{draft}
+  			or
+  			(NOT($P{draft}) and NOT(account_move.state='draft'))
+  		)
+  and
+      (
+       ($P{period_fisc_id} IS NULL and $P{to_period_fisc_id} IS NULL
+        and account_fiscalyear.date_start >= (select account_fiscalyear.date_start from account_fiscalyear
+                                          where account_fiscalyear.id = $P{man_fiscalyear_id})
+        and account_fiscalyear.date_stop <= (select account_fiscalyear.date_stop from account_fiscalyear
+                                          where account_fiscalyear.id = $P{man_fiscalyear_id})
+       )
+      or
+       (
+        NOT($P{period_fisc_id} IS NULL) and $P{to_period_fisc_id} IS NULL
+        and account_period.date_start >= (select account_period.date_start from account_period
+											where account_period.id = $P{period_fisc_id})
+        and account_period.date_stop <= (select account_period.date_stop from account_period
+											where account_period.id = $P{period_fisc_id})
+        and account_period.special =  (select account_period.special from account_period
+											where account_period.id = $P{period_fisc_id})                              	
+       )
+      or
+       (
+        NOT($P{period_fisc_id} IS NULL) and NOT($P{to_period_fisc_id} IS NULL)
+        and account_period.date_start >= (select account_period.date_start from account_period
+                                          where account_period.id = $P{period_fisc_id})
+        and account_period.date_stop <= (select account_period.date_stop from account_period
+                                          where account_period.id = $P{to_period_fisc_id})
+       )
+      )
+order by line_level, cons_path, account_code, account_move_line.date, move_name, line_ref,  tax_code;]]>
+		</queryString>
+		<field name="line_level" class="java.lang.String"/>
+		<field name="move_name" class="java.lang.String">
+			<fieldDescription><![CDATA[Journal Entry]]></fieldDescription>
+		</field>
+		<field name="journal_code" class="java.lang.String"/>
+		<field name="journal_name" class="java.lang.String"/>
+		<field name="move_id" class="java.lang.Integer">
+			<fieldDescription><![CDATA[Move Line]]></fieldDescription>
+		</field>
+		<field name="partner_ref" class="java.lang.String">
+			<fieldDescription><![CDATA[Supplier Reference]]></fieldDescription>
+		</field>
+		<field name="partner_name" class="java.lang.String"/>
+		<field name="debit" class="java.math.BigDecimal"/>
+		<field name="credit" class="java.math.BigDecimal"/>
+		<field name="tax_amount" class="java.lang.Integer">
+			<fieldDescription><![CDATA[Tax Code Amount]]></fieldDescription>
+		</field>
+		<field name="date" class="java.sql.Date">
+			<fieldDescription><![CDATA[End Date]]></fieldDescription>
+		</field>
+		<field name="date_maturity" class="java.sql.Date"/>
+		<field name="account_code" class="java.lang.String"/>
+		<field name="account_name" class="java.lang.String"/>
+		<field name="line_ref" class="java.lang.String"/>
+		<field name="line_name" class="java.lang.String"/>
+		<field name="period_name" class="java.lang.String"/>
+		<field name="invoice_number" class="java.lang.String"/>
+		<field name="reconcile_name" class="java.lang.String"/>
+		<field name="company_name" class="java.lang.String"/>
+		<field name="tax_code" class="java.lang.String"/>
+		<field name="tax_name" class="java.lang.String"/>
+		<field name="acc1_name" class="java.lang.String"/>
+		<field name="acc1_code" class="java.lang.String"/>
+		<field name="amount_currency" class="java.math.BigDecimal">
+			<fieldDescription><![CDATA[Amount Currency]]></fieldDescription>
+		</field>
+		<field name="currency_name" class="java.lang.String"/>
+		<field name="status" class="java.lang.String"/>
+		<field name="cons_path" class="java.lang.String"/>
+		<field name="cons_acct" class="java.lang.String"/>
+		<field name="cons_name" class="java.lang.String"/>
+		<field name="period_from" class="java.lang.String"/>
+		<field name="period_to" class="java.lang.String"/>
+		<field name="partner_status" class="java.lang.Boolean"/>
+		<field name="sel_year" class="java.lang.String"/>
+	</subDataset>
+	<parameter name="period_fisc_id" class="java.lang.Integer"/>
+	<parameter name="to_period_fisc_id" class="java.lang.Integer"/>
+	<parameter name="man_cons_account_id" class="java.lang.Integer"/>
+	<parameter name="man_company_id" class="java.lang.Integer"/>
+	<parameter name="man_fiscalyear_id" class="java.lang.Integer"/>
+	<parameter name="draft" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[false]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[]]>
+	</queryString>
+	<field name="line_level" class="java.lang.String"/>
+	<field name="move_name" class="java.lang.String">
+		<fieldDescription><![CDATA[Journal Entry]]></fieldDescription>
+	</field>
+	<field name="journal_code" class="java.lang.String"/>
+	<field name="journal_name" class="java.lang.String"/>
+	<field name="move_id" class="java.lang.Integer">
+		<fieldDescription><![CDATA[Move Line]]></fieldDescription>
+	</field>
+	<field name="partner_ref" class="java.lang.String">
+		<fieldDescription><![CDATA[Supplier Reference]]></fieldDescription>
+	</field>
+	<field name="partner_name" class="java.lang.String"/>
+	<field name="debit" class="java.math.BigDecimal"/>
+	<field name="credit" class="java.math.BigDecimal"/>
+	<field name="tax_amount" class="java.lang.Integer">
+		<fieldDescription><![CDATA[Tax Code Amount]]></fieldDescription>
+	</field>
+	<field name="date" class="java.sql.Date">
+		<fieldDescription><![CDATA[End Date]]></fieldDescription>
+	</field>
+	<field name="date_maturity" class="java.sql.Date"/>
+	<field name="account_code" class="java.lang.String"/>
+	<field name="account_name" class="java.lang.String"/>
+	<field name="line_ref" class="java.lang.String"/>
+	<field name="line_name" class="java.lang.String"/>
+	<field name="period_name" class="java.lang.String"/>
+	<field name="invoice_number" class="java.lang.String"/>
+	<field name="reconcile_name" class="java.lang.String"/>
+	<field name="company_name" class="java.lang.String"/>
+	<field name="tax_code" class="java.lang.String"/>
+	<field name="tax_name" class="java.lang.String"/>
+	<field name="acc1_name" class="java.lang.String"/>
+	<field name="acc1_code" class="java.lang.String"/>
+	<field name="amount_currency" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Amount Currency]]></fieldDescription>
+	</field>
+	<field name="currency_name" class="java.lang.String"/>
+	<field name="status" class="java.lang.String"/>
+	<field name="cons_path" class="java.lang.String"/>
+	<field name="cons_acct" class="java.lang.String"/>
+	<field name="cons_name" class="java.lang.String"/>
+	<field name="period_from" class="java.lang.String"/>
+	<field name="period_to" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="263" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<componentElement>
+				<reportElement x="-1" y="0" width="3750" height="200" uuid="532578e6-3868-4979-ac8f-a41d3ff303b4">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="Dataset1" uuid="8c384f9d-4768-4af0-88ae-ce91875efa17">
+						<datasetParameter name="period_fisc_id">
+							<datasetParameterExpression><![CDATA[$P{period_fisc_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="to_period_fisc_id">
+							<datasetParameterExpression><![CDATA[$P{to_period_fisc_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="man_cons_account_id">
+							<datasetParameterExpression><![CDATA[$P{man_cons_account_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="man_company_id">
+							<datasetParameterExpression><![CDATA[$P{man_company_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="man_fiscalyear_id">
+							<datasetParameterExpression><![CDATA[$P{man_fiscalyear_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="draft">
+							<datasetParameterExpression><![CDATA[$P{draft}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="50" uuid="075fc2b6-382d-45a0-8e62-9869193443e0">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="c3407591-b909-4a13-98c2-d1ab5cd88155"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FINPH.manFiscalyearId}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="13d926b4-2b5d-4ecb-a3bc-c708e4a8895c"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{sel_year}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="50" uuid="859e1c52-dd82-4e68-afa0-912149989202">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="fe891270-af37-41bf-a751-aefd926efcc9"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.period}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="412250f0-f3be-4b2f-a5bf-6ff077695022"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{period_from}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="50" uuid="0043e4b1-1704-429d-b4db-55c51ed7db2c">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="0029791a-dfd6-47f3-8593-f1b62e14aaf1"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.periodTo}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="b0466ceb-7627-4f35-ab45-39843a337d9e"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{period_to}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="150" uuid="ba67b062-ddc4-4639-9337-919abae09599">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="150" height="12" uuid="4c0aa726-884f-4196-9c73-669b3ae2c146"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.consAccPath}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="150" height="12" uuid="a62f8147-aad4-40a4-abab-582742998e91"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{cons_path}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="97ca6a1e-62fb-4a77-9619-84e2b3ed14e4">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="14e545e8-2e5b-4e13-ad0b-efba691170b2"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.consAcc}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="8a2e4f9c-b4da-4037-a2ac-285a19ed8e6d"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{cons_acct}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="250" uuid="8da13652-1691-4828-a2e3-d3b5e9e5e1f1">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="250" height="12" uuid="2815e8f9-b8c8-4483-95f6-3e876ed8cb2b"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.consAccName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="250" height="12" uuid="4782163e-591f-4bfa-bcad-857559999861"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{cons_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="200" uuid="366d6a6f-b630-4cd5-bc3f-7848fa9767b2">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="200" height="12" uuid="51d9ccd4-92ba-4c38-bc78-4b28e2ee39ad">
+									<property name="local_mesure_unitwidth" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.width" value="px"/>
+									<property name="local_mesure_unitheight" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.height" value="px"/>
+								</reportElement>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.companyName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="200" height="12" uuid="889100ca-0c7c-459e-9e84-301186a834ef">
+									<property name="local_mesure_unitwidth" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.width" value="px"/>
+									<property name="local_mesure_unitheight" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.height" value="px"/>
+								</reportElement>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{company_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="50" uuid="72ceffd3-b716-4124-b2f9-275dcaf1d954">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="a9fceb3e-515e-4893-a1d6-c161334d6579"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.account}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="257f9d57-5f9d-444d-8d34-28a851bbd83d"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{account_code}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="250" uuid="2ed4077b-2074-4cad-9803-dc566d48b0e9">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="250" height="12" uuid="cfc16c55-fbb0-4acd-b29b-aa71ce208e2b"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.accountName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="250" height="12" uuid="5638a538-84e5-4c51-b803-c7b3755b1a60"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{account_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="50" uuid="a4034743-1ceb-4202-b868-edbaeedfcb20">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="b6cc31f5-e813-4563-825f-a94b4889e8ef"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.period}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="73ecd685-e5ed-4f51-8810-4a7b8bfe4ab6"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{period_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="50" uuid="81712333-85c5-4ff7-b70f-015d0d52870a">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="b9fb7a55-4a1f-4884-acd7-e0188a801275"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.journal}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="1130e26f-0bb9-48d4-b080-6e5dec3503e9"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{journal_code}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="250" uuid="ade8126d-4705-40b0-9d16-a91b4e11a8c8">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="250" height="12" uuid="3e25277a-5daa-47b7-b211-cc658bd49f78"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.journalName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="250" height="12" uuid="44357468-b95f-497d-a691-9d40a139f547"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{journal_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="100" uuid="bcc971ef-d623-4054-a42a-d7b7e1979989">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="100" height="12" uuid="27b6f393-5f49-4d45-b9a8-938e6296dfee"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.moveName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="100" height="12" uuid="74b7d4a6-f1e8-4114-bb42-0988dadd1289"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{move_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="5718b828-93c8-46b3-b8e6-8ee52adca047">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="a2a76a54-51f5-4ead-8729-72143c8666d3"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.date}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="e0f34706-7c3a-417d-a052-26c33fdce72c"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{date}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="250" uuid="a1ad98b4-790c-429c-a506-4e2c253aeaef">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="250" height="12" uuid="97325935-d070-49e2-9082-4279936d54f6"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.partner}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="250" height="12" uuid="c182748f-4c47-4c31-ba86-535d6c947e70"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{partner_ref} == null ? $F{partner_name} : "[" + $F{partner_ref} + "]" + $F{partner_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="100" uuid="7ae933b3-fd7e-4e19-bede-715aff47c294">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="100" height="12" uuid="3bf38dea-117a-4cf4-a1f0-b5b1e138a044"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.partnerStatus}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="100" height="12" uuid="5c6851e1-aa1e-4227-b3fb-3888f2ca2da2"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{partner_status} ? "Aktief" : "Niet aktief"]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="160" uuid="337c403b-df92-462a-8ce5-e522dc1ed0a7">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="160" height="12" uuid="327d2a18-e1b7-4860-9511-4dfdfc59810f"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.moveItemRef}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="160" height="12" uuid="f5a678dc-4134-49c4-9add-2cdf98b3bb06"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{line_ref}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="250" uuid="49c72d20-6ce7-4340-a57e-f42edd3751d1">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="250" height="12" uuid="3b3ec102-80be-40be-986d-3152abb4ed12"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.moveItemName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="250" height="12" uuid="8ebec8cb-0ae0-40de-8c78-c28c8374df14"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{line_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="48fc8928-c16d-4ee4-bc8c-0f0bf8deabac">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="f034ca30-5a01-4efe-ad75-ff4f0e361d43"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.invoiceNumber}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="8f5c5092-94aa-4c7e-98fe-13f7ff35028f"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{invoice_number}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="4058b892-f3e8-40a9-8f0c-bec32432ada9">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="60" height="12" uuid="8a10a4e5-bcd4-4399-a88a-7bff0518f3d7"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.reconcile}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="60" height="12" uuid="61896487-f441-4221-8369-849cf40d55f0"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{reconcile_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="0cbcebfd-a50f-4a72-82aa-baa25eb7d63e">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="3b13938e-3a42-4373-bfba-d5d68b5588ed"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.debet}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="10a6e489-dba5-45f5-8982-14d3c3d757bf"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{debit}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="1dfb97c2-b21c-4cf6-a1d9-92f1816a9064">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="762eb6d7-8a81-46d6-ba31-6a6782f7dcf6"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.credit}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="06ef0ba9-9eba-4a05-80a4-d98379839d60"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{credit}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="631cf9ba-72af-4630-b895-c81e8710bea1">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="61697e2f-c66c-4321-bf0e-cf0437103320"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.balance}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="e55a6c31-9e87-4452-910b-b80965a6e047"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{debit} - $F{credit}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="85" uuid="ad3219d8-5d7a-4a14-8f91-18a394f54e26">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="85" height="12" uuid="4ab6a344-f69c-4fb7-b921-0bffecbac571"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.amount}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="85" height="12" uuid="51fa03f0-a538-4313-8470-7486354898a8"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{amount_currency}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="40" uuid="a657f3e6-1e95-49b5-9397-160960da505f">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="40" height="12" uuid="f1ede99a-69a0-4ef4-a647-37791122c141"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.currency}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="40" height="12" uuid="43e2b094-44a2-45e0-8f4a-1b82cb904a42"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{currency_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="fab0d637-9a96-4568-b078-6f17524bad41">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="ae0894db-4b97-4f18-ae3b-9bb1ce65e991"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.dateDue}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="dd/MM/yyyy" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="b706a4ad-62f3-43d1-bc46-3955801d900d"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{date_maturity}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="0b1cb6d4-bede-470e-9f2c-981de3fd02ea">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="60" height="12" uuid="bd2d595c-d4a7-4940-9ae9-75f8a1eb7191"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.taxCode}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="60" height="12" uuid="0adea222-4013-48e3-9b2a-bb40d8535c00"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{tax_code}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="250" uuid="a2f38012-f66a-4909-aeb9-e9e552b924d7">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="250" height="12" uuid="a57f700a-0643-4f62-8d47-24c4421885ba"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.taxName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="250" height="12" uuid="f6955840-eb0e-47aa-ae35-70b671f13d05"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{tax_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="6eaeebd9-35d2-4729-abbe-7f240676754e">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="f4552699-4239-4e9c-a661-e8530b3b3827"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.tax}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="fc70f36d-cc93-444d-89c1-b97812280157"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{tax_amount}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="21fbc7ef-e05b-4bdb-b960-e53475237adf">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="d21a3b8a-b23f-4224-bc6d-48d40d7b8bec"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.anaccount}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="7ab0a593-59a0-4990-bb6b-dfbbd3fb0c39"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{acc1_code}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="200" uuid="b7572fac-6c67-497c-902f-d2c08190ee0e">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="200" height="12" uuid="d6ce4664-fe70-4e05-a7a3-b1e980ae74e8"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.anaccountName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="200" height="12" uuid="e3cf1c0d-e706-4de1-aa1c-ea5d9d53bd08"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{acc1_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="50" uuid="b7a8c3e0-2973-4673-b630-da2f92a08bb1">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="50" height="12" uuid="c71adac2-8d9f-45fd-a079-d5872dc17c56"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.status}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="50" height="12" uuid="52d0d518-96f1-4e70-a7a1-2768ffc13963"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+		</band>
+	</summary>
+</jasperReport>

@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.0.0.final using JasperReports Library version 6.0.0  -->
+<!-- 2014-12-24T11:24:24 -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ST03_V00" language="groovy" pageWidth="3000" pageHeight="572" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="3000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" resourceBundle="locsmartsolution" uuid="e4c424fe-6d42-43d9-bea9-778403e85309">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="ucamco"/>
+	<style name="Table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<subDataset name="TableData" uuid="2954bddd-b307-4c43-bd5b-c12e5e7b833e">
+		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="ucamco"/>
+		<parameter name="man_company_id" class="java.lang.Integer"/>
+		<parameter name="man_date_from" class="java.sql.Date"/>
+		<parameter name="man_date_to" class="java.sql.Date">
+			<parameterDescription><![CDATA[]]></parameterDescription>
+		</parameter>
+		<parameter name="account_id" class="java.lang.Integer"/>
+		<parameter name="to_account_id" class="java.lang.Integer"/>
+		<queryString language="SQL">
+			<![CDATA[select 
+	company_name1 as company_name,
+	product_id1 as product_id,
+	product_code1 as product_code,
+	product_name1 as product_name,
+	category1 as category,
+	valuation_account1  as valuation_account,
+	qty_date_from1 as qty_date_from,
+	qty_date_to1 as qty_date_to,
+	standard_price1 as standard_price,
+	value_datefrom1 as value_datefrom,
+	valuert_datefrom1 as valuert_datefrom,
+	value_dateto1 as value_dateto,
+	valuert_dateto1 as valuert_dateto,
+	move_value1 as move_value
+FROM
+(
+select 
+	res_company.name as company_name1,
+	st.prod_id as product_id1,
+	st.prod_code as product_code1,
+	st.prod_name as product_name1,
+	st.cat as category1,
+	st.val_account  as valuation_account1,
+	SUM(st.qty_datefrom) as qty_date_from1,
+	SUM(st.qty_dateto) as qty_date_to1,
+	MIN(st.stand_price) as standard_price1,
+	SUM(st.val_datefrom) as value_datefrom1,
+	SUM(st.valrt_datefrom) as valuert_datefrom1,
+	SUM(st.val_dateto) as value_dateto1,
+	SUM(st.valrt_dateto) as valuert_dateto1,
+	SUM(st.move_val) as move_value1
+FROM
+(
+select
+	product_product.id as prod_id,
+	product_product.default_code as prod_code,
+	product_product.name_template as prod_name,
+	product_category.name as cat,
+	account_account.code as val_account,
+	case when stock_move.date < cast($P{man_date_from} as date) + 1 then stock_move.product_qty else 0 end as qty_datefrom,
+	stock_move.product_qty as qty_dateto,
+	product_template.standard_price as stand_price,
+	case when stock_move.date < cast($P{man_date_from} as date) + 1 then stock_move.product_qty  * product_template.standard_price else 0 end as val_datefrom,
+	case when product_product.valuation='real_time'  and stock_move.date < cast($P{man_date_from} as date) + 1 
+				then stock_move.product_qty  * product_template.standard_price else 0 end as valrt_datefrom,
+	stock_move.product_qty  * product_template.standard_price as val_dateto,
+	case when product_product.valuation='real_time' then stock_move.product_qty  * product_template.standard_price else 0 end as valrt_dateto,
+	0 as move_val
+from stock_move
+inner join product_product on product_product.id = stock_move.product_id
+inner join product_template on product_template.id = product_product.product_tmpl_id
+inner join product_category on product_category.id = product_template.categ_id
+inner join stock_location on stock_location.id = stock_move.location_dest_id
+inner join ir_property on ir_property.name = 'property_stock_valuation_account_id' and
+		ir_property.res_id = 'product.category,' || product_category.id
+inner join account_account on account_account.id = cast(replace(ir_property.value_reference, 'account.account,', '') as integer)
+left outer join account_account aa_from on aa_from.id = $P{account_id}
+left outer join account_account aa_to on aa_to.id = $P{to_account_id}
+where
+     stock_move.company_id = $P{man_company_id}
+and
+	stock_move.state = 'done'
+and
+	stock_location.usage = 'internal'
+and
+	stock_move.date < cast($P{man_date_to} as date) + 1
+and
+	product_product.valuation='real_time'
+  and (
+       ($P{account_id} IS NULL and $P{to_account_id} IS NULL)
+       or
+       (NOT($P{account_id} IS NULL) and $P{to_account_id} IS NULL and account_account.id = $P{account_id})
+       or
+       (NOT($P{account_id} IS NULL) and NOT($P{to_account_id} IS NULL) and account_account.code >= aa_from.code and account_account.code <= aa_to.code)
+      )
+UNION ALL
+select
+	product_product.id as prod_id,
+	product_product.default_code as prod_code,
+	product_product.name_template as prod_name,
+	product_category.name as cat,
+	account_account.code as val_account,
+	case when stock_move.date < cast($P{man_date_from} as date) + 1 then -1 * stock_move.product_qty else 0 end as qty_datefrom,
+	-1 * stock_move.product_qty as qty_dateto,
+	product_template.standard_price as standard_price,
+	case when stock_move.date < cast($P{man_date_from} as date) + 1 then -1 * stock_move.product_qty  * product_template.standard_price else 0 end as val_datefrom,
+	case when product_product.valuation='real_time'  and stock_move.date < cast($P{man_date_from} as date) + 1 
+				then -1 * stock_move.product_qty  * product_template.standard_price else 0 end as valrt_datefrom,
+	-1 * stock_move.product_qty  * product_template.standard_price as val_dateto,
+	case when product_product.valuation='real_time' then -1 * stock_move.product_qty  * product_template.standard_price else 0 end as valrt_dateto,
+	0 as move_val
+from stock_move
+inner join product_product on product_product.id = stock_move.product_id
+inner join product_template on product_template.id = product_product.product_tmpl_id
+inner join product_category on product_category.id = product_template.categ_id
+inner join stock_location on stock_location.id = stock_move.location_id
+inner join ir_property on ir_property.name = 'property_stock_valuation_account_id' and
+		ir_property.res_id = 'product.category,' || product_category.id
+inner join account_account on account_account.id = cast(replace(ir_property.value_reference, 'account.account,', '') as integer)
+left outer join account_account aa_from on aa_from.id = $P{account_id}
+left outer join account_account aa_to on aa_to.id = $P{to_account_id}
+where
+     stock_move.company_id = $P{man_company_id}
+and
+	stock_move.state = 'done'
+and
+	stock_location.usage = 'internal'
+and
+	product_product.valuation='real_time'
+and
+	stock_move.date < cast($P{man_date_to} as date) + 1
+  and (
+       ($P{account_id} IS NULL and $P{to_account_id} IS NULL)
+       or
+       (NOT($P{account_id} IS NULL) and $P{to_account_id} IS NULL and account_account.id = $P{account_id})
+       or
+       (NOT($P{account_id} IS NULL) and NOT($P{to_account_id} IS NULL) and account_account.code >= aa_from.code and account_account.code <= aa_to.code)
+      )
+UNION ALL
+select
+	product_product.id as prod_id,
+	product_product.default_code as prod_code,
+	product_product.name_template as prod_name,
+	product_category.name as cat,
+	account_account.code as val_account,
+	0 as qty_datefrom,
+	0 as qty_dateto,
+	product_template.standard_price as standard_price,
+	0 as val_datefrom,
+	0 as valrt_datefrom,
+	0 as val_dateto,
+	0 as valrt_dateto,
+	account_move_line.debit - account_move_line.credit as move_val
+FROM account_move
+inner join account_move_line on account_move_line.move_id = account_move.id
+inner join account_account on account_account.id = account_move_line.account_id
+inner join product_product on product_product.id = account_move.product_id
+inner join product_template on product_template.id = product_product.product_tmpl_id
+inner join product_category on product_category.id = product_template.categ_id
+left outer join account_account aa_from on aa_from.id = $P{account_id}
+left outer join account_account aa_to on aa_to.id = $P{to_account_id}
+where
+		account_move.company_id = $P{man_company_id}
+	and 
+		NOT(account_move.state='canceled')
+	and
+		product_product.valuation='real_time'
+	and
+		(account_move_line.debit <> 0 or account_move_line.credit <> 0)
+	and
+		NOT (account_move.stock_move_id IS NULL)
+	and
+  		(
+			account_move_line.date >= cast($P{man_date_from} as date) +1
+  			and 
+  			account_move_line.date < cast($P{man_date_to} as date) + 1
+  		)
+	and
+		(
+			($P{account_id} IS NULL and $P{to_account_id} IS NULL)
+			or
+			(NOT($P{account_id} IS NULL) and $P{to_account_id} IS NULL and account_account.id = $P{account_id})
+			or
+			(NOT($P{account_id} IS NULL) and NOT($P{to_account_id} IS NULL) and account_account.code >= aa_from.code and account_account.code <= aa_to.code)
+		)
+) st
+inner join res_company on res_company.id = $P{man_company_id}
+group by company_name1, product_code1, product_name1, product_id1,  category1, valuation_account1
+order by company_name1, product_code1, product_name1, product_id1, category1, valuation_account1
+) as tot
+where
+(
+	NOT(value_datefrom1 = value_dateto1)
+	or
+	NOT(move_value1 = 0)
+)
+order by company_name, valuation_account, category, product_code, product_name, product_id]]>
+		</queryString>
+		<field name="product_code" class="java.lang.String">
+			<fieldDescription><![CDATA[]]></fieldDescription>
+		</field>
+		<field name="product_name" class="java.lang.String"/>
+		<field name="company_name" class="java.lang.String"/>
+		<field name="category" class="java.lang.String"/>
+		<field name="valuation_account" class="java.lang.String"/>
+		<field name="qty_date_from" class="java.math.BigDecimal"/>
+		<field name="qty_date_to" class="java.math.BigDecimal"/>
+		<field name="standard_price" class="java.math.BigDecimal"/>
+		<field name="value_datefrom" class="java.math.BigDecimal"/>
+		<field name="valuert_datefrom" class="java.math.BigDecimal"/>
+		<field name="value_dateto" class="java.math.BigDecimal"/>
+		<field name="valuert_dateto" class="java.math.BigDecimal"/>
+		<field name="move_value" class="java.math.BigDecimal"/>
+	</subDataset>
+	<parameter name="man_company_id" class="java.lang.Integer"/>
+	<parameter name="man_date_from" class="java.sql.Date">
+		<parameterDescription><![CDATA[]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new java.util.Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="man_date_to" class="java.sql.Date">
+		<defaultValueExpression><![CDATA[new java.util.Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="account_id" class="java.lang.Integer"/>
+	<parameter name="to_account_id" class="java.lang.Integer"/>
+	<queryString language="SQL">
+		<![CDATA[]]>
+	</queryString>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="200" splitType="Stretch">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<componentElement>
+				<reportElement x="0" y="0" width="3550" height="200" uuid="fccfc2e6-1a02-48d9-8b72-508aab5c6c49">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitx" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="local_mesure_unity" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="TableData" uuid="a2c66d75-c065-4263-b650-894040e16ba7">
+						<datasetParameter name="man_company_id">
+							<datasetParameterExpression><![CDATA[$P{man_company_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="account_id">
+							<datasetParameterExpression><![CDATA[$P{account_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="to_account_id">
+							<datasetParameterExpression><![CDATA[$P{to_account_id}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="man_date_from">
+							<datasetParameterExpression><![CDATA[$P{man_date_from}]]></datasetParameterExpression>
+						</datasetParameter>
+						<datasetParameter name="man_date_to">
+							<datasetParameterExpression><![CDATA[$P{man_date_to}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="200" uuid="80637acc-7731-49e5-8831-7d7952850fc6">
+						<property name="local_mesure_unitwidth" value="pixel"/>
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="200" height="12" uuid="284d2469-8f39-4844-b40b-0bfb0ccd05c0">
+									<property name="local_mesure_unitwidth" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.width" value="px"/>
+									<property name="local_mesure_unitheight" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.height" value="px"/>
+								</reportElement>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.companyName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="200" height="12" uuid="cedf596a-8372-4d36-82d6-66c1f130a961">
+									<property name="local_mesure_unitwidth" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.width" value="px"/>
+									<property name="local_mesure_unitheight" value="pixel"/>
+									<property name="com.jaspersoft.studio.unit.height" value="px"/>
+								</reportElement>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{company_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="100" uuid="124cac06-edf7-4dda-a9bc-d87cfd714e6b">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="100" height="12" uuid="eddd42a2-703d-48df-8b9e-5acec53e23f1"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{FIN.account}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="100" height="12" uuid="19db4265-a2e1-4e89-bd95-ba6a5a9ebc0b"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{valuation_account}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="200" uuid="c4f289cf-3136-47d1-bdb2-e38b01602373">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="200" height="12" uuid="2bc8a49d-15f7-48ab-8bd6-6be392079197"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.category}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="200" height="12" uuid="5839529b-b472-42df-a8a9-0080b5da0461"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{category}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="100" uuid="6b38460f-4766-4a28-9728-5b79a2fcebbc">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="100" height="12" uuid="00efb600-ac26-4f4e-b442-620c8e1d9ffb"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.product}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="100" height="12" uuid="63af7d0d-9917-46d9-9164-971f20c0501f"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{product_code}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="200" uuid="0d3c1a8e-1bf0-4050-bf82-726605256d80">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="200" height="12" uuid="2820746e-cecb-48ce-be7c-30e2b538d1e9"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.productName}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="200" height="12" uuid="20712761-a9a3-49ca-b7d9-6a684b53bc55"/>
+								<textElement>
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{product_name}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="2b1eab35-9607-40ff-b79d-27b84bc6970b">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="8c186a97-2a38-4f6c-a1b5-d9eb74c618cf"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.stock} + ' ' + $P{man_date_from}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="0.0000" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="f034ca64-99d7-4726-aa2f-26d5beb24c9f"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{value_datefrom}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="4dbbc4f2-5604-433f-8359-62217536459b">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="4b51597c-d73e-495f-a9f9-610b36b9bb79"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.moveValue}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="0.0000" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="31c6c922-c7b9-458e-abf4-c892556c38ae"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{move_value}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="fe955283-2ae0-4e05-a178-fc22f8a48395">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="141e8827-8afb-441e-846f-a05528a456b3"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.stock} + ' ' + $P{man_date_to}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="0.0000" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="b9a78bed-912f-40e6-8941-a0b1eb514c85"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{value_dateto}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="80" uuid="ad1c9909-2086-4edf-bca6-d04d8a1fd0ff">
+						<jr:columnHeader style="Table_CH" height="13">
+							<textField>
+								<reportElement x="0" y="0" width="80" height="12" uuid="f8a0b045-5a81-47ba-a12a-3c3787242601"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$R{ST.diff}]]></textFieldExpression>
+							</textField>
+						</jr:columnHeader>
+						<jr:detailCell style="Table_TD" height="13">
+							<textField pattern="0.0000" isBlankWhenNull="true">
+								<reportElement x="0" y="0" width="80" height="12" uuid="741dfcfb-a753-44d9-a336-2e039af036c9"/>
+								<textElement textAlignment="Right">
+									<font fontName="Arial"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{value_dateto} - $F{value_datefrom} - $F{move_value}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+		</band>
+	</summary>
+</jasperReport>
