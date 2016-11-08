@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2016-05-03T14:06:47 -->
+<!-- 2016-11-08T11:21:26 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN31 Budgetgegevens extractie" language="groovy" pageWidth="1650" pageHeight="595" orientation="Landscape" columnWidth="1610" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="43f81125-cdfb-41d3-8b26-2e35b09a4f9b">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt_validatie"/>
 	<property name="com.jaspersoft.studio.unit." value="pixel"/>
@@ -362,8 +362,8 @@ order by budget_company, an_account, budgettype, line_type, budgetcode, budget_p
 				<property name="local_mesure_unitheight" value="pixel"/>
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<printWhenExpression><![CDATA[$F{line_type} > "1"]]></printWhenExpression>
-				<textField isBlankWhenNull="true">
-					<reportElement x="620" y="0" width="250" height="12" forecolor="#000000" uuid="2123e495-2a52-45af-af4e-4adcdc74e3d9">
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement stretchType="RelativeToBandHeight" x="620" y="0" width="250" height="12" forecolor="#000000" uuid="2123e495-2a52-45af-af4e-4adcdc74e3d9">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 						<property name="local_mesure_unitx" value="pixel"/>
 						<property name="com.jaspersoft.studio.unit.x" value="px"/>
@@ -442,8 +442,8 @@ order by budget_company, an_account, budgettype, line_type, budgetcode, budget_p
 					</textElement>
 					<textFieldExpression><![CDATA[$F{account}]]></textFieldExpression>
 				</textField>
-				<textField pattern="dd/MM/yyyy">
-					<reportElement x="320" y="0" width="250" height="12" uuid="97fbc383-2680-48c0-af5e-0e935651641e">
+				<textField isStretchWithOverflow="true" pattern="dd/MM/yyyy">
+					<reportElement stretchType="RelativeToBandHeight" x="320" y="0" width="250" height="12" uuid="97fbc383-2680-48c0-af5e-0e935651641e">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 						<property name="local_mesure_unitwidth" value="pixel"/>
 						<property name="com.jaspersoft.studio.unit.width" value="px"/>
@@ -778,8 +778,8 @@ order by budget_company, an_account, budgettype, line_type, budgetcode, budget_p
 				</textElement>
 				<textFieldExpression><![CDATA[$F{theor_amt}]]></textFieldExpression>
 			</textField>
-			<textField pattern="dd/MM/yyyy">
-				<reportElement x="320" y="0" width="250" height="12" uuid="d5ed7b3d-db0a-424f-a719-150b9747420c">
+			<textField isStretchWithOverflow="true" pattern="dd/MM/yyyy">
+				<reportElement stretchType="RelativeToBandHeight" x="320" y="0" width="250" height="12" uuid="d5ed7b3d-db0a-424f-a719-150b9747420c">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					<property name="local_mesure_unitwidth" value="pixel"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
@@ -804,8 +804,8 @@ order by budget_company, an_account, budgettype, line_type, budgetcode, budget_p
 				</textElement>
 				<textFieldExpression><![CDATA[$F{budgetcode}]]></textFieldExpression>
 			</textField>
-			<textField isBlankWhenNull="true">
-				<reportElement x="620" y="0" width="250" height="12" forecolor="#000000" uuid="0c370b05-9a07-4702-8199-9be2fbe15241">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToBandHeight" x="620" y="0" width="250" height="12" forecolor="#000000" uuid="0c370b05-9a07-4702-8199-9be2fbe15241">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					<property name="local_mesure_unitx" value="pixel"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
