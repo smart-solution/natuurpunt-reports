@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2016-11-08T11:36:10 -->
+<!-- 2016-11-10T08:55:24 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN32_V01" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="43f81125-cdfb-41d3-8b26-2e35b09a4f9b">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt_validatie"/>
 	<parameter name="man_period_id" class="java.lang.Integer"/>
@@ -591,7 +591,6 @@ order by budget_company, an_account, budgettype, budget_pos]]>
 		<groupExpression><![CDATA[$F{an_account}]]></groupExpression>
 		<groupFooter>
 			<band height="9" splitType="Stretch">
-				<printWhenExpression><![CDATA[$F{line_type} > "1"]]></printWhenExpression>
 				<rectangle>
 					<reportElement x="0" y="0" width="801" height="9" backcolor="#D9D9D9" uuid="c359a3c8-e935-433e-9c5c-6ed63fa3d43b">
 						<property name="local_mesure_unitx" value="pixel"/>
