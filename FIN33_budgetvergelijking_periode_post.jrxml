@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2016-09-22T16:50:39 -->
+<!-- 2017-01-05T10:22:32 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN33 Budgetvergelijking voor periode per post" language="groovy" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="43f81125-cdfb-41d3-8b26-2e35b09a4f9b">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt_validatie"/>
 	<parameter name="man_period_id" class="java.lang.Integer"/>
@@ -202,7 +202,7 @@ UNION ALL
 select
 	'3' as line_type,
 	res_company.name as company_name,
-	cb.code as budget_code,
+	'' as budget_code,
 	cbref.code as ref_budget_code,
 	abt.name as budgettype,
 	'[' || trim(both from aaa.code) || '] ' || trim(both from aaa.name) as an_account,
@@ -211,34 +211,31 @@ select
 	0 as budget_amt,
 	0 as theor_amt,
 	0 as act_amt,
-	cbl.planned_amount as ref_budget_amt,
-	cbl.planned_amount * ((case when cbl.date_to < apref_end.date_stop then cbl.date_to	else apref_end.date_stop end) - 
-		(case when cbl.date_from > apref_start.date_start then cbl.date_from else apref_start.date_start end) + 1) /
-		((cbl.date_to - cbl.date_from) + 1) as ref_theor_amt,
+	cbrefl.planned_amount as ref_budget_amt,
+	cbrefl.planned_amount * ((case when cbrefl.date_to < apref_end.date_stop then cbrefl.date_to	else apref_end.date_stop end) - 
+		(case when cbrefl.date_from > apref_start.date_start then cbrefl.date_from else apref_start.date_start end) + 1) /
+		((cbrefl.date_to - cbrefl.date_from) + 1) as ref_theor_amt,
 	0 as ref_act_amt,
-	ap_start.code as period_from,
-	ap_end.code as period_to,
+	'' as period_from,
+	'' as period_to,
 	apref_start.code as ref_period_from,
 	apref_end.code as ref_period_to
 from
 	res_company
-	inner join crossovered_budget cb on cb.id = $P{man_budget_id}
-	inner join res_company cbc on cbc.id = cb.company_id
-	inner join crossovered_budget_lines cbl on cbl.crossovered_budget_id = $P{man_budget_id}
-	inner join account_analytic_account aaa on aaa.id = cbl.analytic_account_id
-	inner join account_budget_post abp on abp.id = cbl.general_budget_id
-	inner join account_period ap_start on ap_start.id = $P{man_period_id}
-	inner join account_period ap_end on ap_end.id = $P{man_to_period_id}
-	left outer join crossovered_budget cbref on cbref.id = $P{opt_ref_budget_id}
-	left outer join account_period apref_start on apref_start.id = $P{opt_ref_period_id}
-	left outer join account_period apref_end on apref_end.id = $P{opt_ref_to_period_id}
+	inner join crossovered_budget cbref on cbref.id = $P{opt_ref_budget_id}
+	inner join res_company cbc on cbc.id = cbref.company_id
+	inner join crossovered_budget_lines cbrefl on cbrefl.crossovered_budget_id = $P{opt_ref_budget_id}
+	inner join account_analytic_account aaa on aaa.id = cbrefl.analytic_account_id
+	inner join account_budget_post abp on abp.id = cbrefl.general_budget_id	
+	inner join account_period apref_start on apref_start.id = $P{opt_ref_period_id}	
+	inner join account_period apref_end on apref_end.id = $P{opt_ref_to_period_id}	
 	left outer join account_budget_type abt on abt.id = abp.budget_type_id
 where
 	res_company.id = $P{man_company_id}
 	and
-	cb.company_id = res_company.id
+	cbref.company_id = res_company.id
 	and
-	cbl.date_from <= apref_end.date_stop and cbl.date_to >= apref_start.date_start
+	cbrefl.date_from <= apref_end.date_stop and cbrefl.date_to >= apref_start.date_start
 	and 
 	(
 		(
