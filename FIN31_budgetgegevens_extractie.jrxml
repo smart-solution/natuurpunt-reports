@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2016-11-08T11:21:26 -->
+<!-- 2017-02-13T08:48:32 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN31 Budgetgegevens extractie" language="groovy" pageWidth="1650" pageHeight="595" orientation="Landscape" columnWidth="1610" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="43f81125-cdfb-41d3-8b26-2e35b09a4f9b">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt_validatie"/>
 	<property name="com.jaspersoft.studio.unit." value="pixel"/>
@@ -260,7 +260,7 @@ where
 		and 
 		ap.date_stop <= ap_end.date_stop
 		and
-		ap.special = 'False'	
+		cast(substring(ap.code,1,2) as int) <> 0
 	)
 order by budget_company, an_account, budgettype, line_type, budgetcode, budget_pos, account, end_date, ap_date_end]]>
 	</queryString>

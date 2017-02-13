@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2016-09-26T11:27:54 -->
+<!-- 2017-02-09T10:46:48 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN39_Budgetgegevens draaitabel" language="groovy" pageWidth="2000" pageHeight="595" orientation="Landscape" columnWidth="1960" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" uuid="43f81125-cdfb-41d3-8b26-2e35b09a4f9b">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="validatie39"/>
 	<property name="com.jaspersoft.studio.unit." value="pixel"/>
@@ -191,8 +191,6 @@ where
 		ap.date_start >= ap_start.date_start 
 		and 
 		ap.date_stop <= ap_end.date_stop
-		and
-		ap.special = 'False'	
 	)
 group by budgetcode, budget_company, an_account, budget_pos, account, year, period
 order by budgetcode, budget_company, an_account, budget_pos, account, year, period

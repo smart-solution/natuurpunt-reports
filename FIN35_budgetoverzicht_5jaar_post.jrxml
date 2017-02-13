@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2016-09-15T08:24:29 -->
+<!-- 2017-02-13T09:23:49 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="FIN35 Budgetoverzicht 5 jaar per post" language="groovy" pageWidth="1100" pageHeight="595" orientation="Landscape" columnWidth="1060" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" resourceBundle="locsmartsolution" whenResourceMissingType="Error" uuid="43f81125-cdfb-41d3-8b26-2e35b09a4f9b">
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="natuurpunt_validatie"/>
 	<property name="com.jaspersoft.studio.unit." value="pixel"/>
@@ -13,10 +13,10 @@
 	<parameter name="p_en_l" class="java.lang.Boolean">
 		<defaultValueExpression><![CDATA[TRUE( )]]></defaultValueExpression>
 	</parameter>
-	<parameter name="man_fiscalyear_id" class="java.lang.Integer"/>
 	<parameter name="collapse" class="java.lang.Boolean">
 		<defaultValueExpression><![CDATA[TRUE( )]]></defaultValueExpression>
 	</parameter>
+	<parameter name="year" class="java.lang.Integer"/>
 	<queryString>
 		<![CDATA[select
 	'1' as line_type,
@@ -31,57 +31,57 @@
 	cbl.date_to as end_date,
 	cbl.date_from as start_theor,
 	case
-		when cbl.date_to < af.date_stop
+		when cbl.date_to < cast(cast($P{year} as text) || '-12-31' as date)
 		then cbl.date_to
-		else af.date_stop
+		else cast(cast($P{year} as text) || '-12-31' as date)
 	end as end_theor,
 	'' as period,
 	0 as year,
-	date_part('year', af.date_start) as lyear,
-	date_part('year', af.date_start) - 4 as lyear_4,
+	$P{year} as lyear,
+	$P{year} - 4 as lyear_4,
 	cbl.planned_amount as budget_amt,
-	case when cbl.date_from > (af.date_stop - interval '4 years') then 0 else
-		case when cbl.date_to <= af.date_stop - interval '5 years' then 0 else
+	case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '4 years') then 0 else
+		case when cbl.date_to <= cast(cast($P{year} as text) || '-12-31' as date) - interval '5 years' then 0 else
 			cbl.planned_amount * 
-			(case when cbl.date_to < af.date_stop - interval '4 years' then cbl.date_to else (af.date_stop - interval '4 years')::date end -
-			 case when cbl.date_from > (af.date_stop - interval '5 years') and cbl.date_from <= (af.date_stop - interval '4 years') 
-					then cbl.date_from else (af.date_stop  +  interval '1 day' - interval '5 years')::date end 
+			(case when cbl.date_to < cast(cast($P{year} as text) || '-12-31' as date) - interval '4 years' then cbl.date_to else (cast(cast($P{year} as text) || '-12-31' as date) - interval '4 years')::date end -
+			 case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '5 years') and cbl.date_from <= (cast(cast($P{year} as text) || '-12-31' as date) - interval '4 years') 
+					then cbl.date_from else (cast(cast($P{year} as text) || '-12-31' as date)  +  interval '1 day' - interval '5 years')::date end 
 				+ 1) /
 				((cbl.date_to - cbl.date_from)::integer + 1)
 	end end as theor_amt_4,
-	case when cbl.date_from > (af.date_stop - interval '3 years') then 0 else
-		case when cbl.date_to <= af.date_stop - interval '4 years' then 0 else
+	case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '3 years') then 0 else
+		case when cbl.date_to <= cast(cast($P{year} as text) || '-12-31' as date) - interval '4 years' then 0 else
 			cbl.planned_amount * 
-			(case when cbl.date_to < af.date_stop - interval '3 years' then cbl.date_to else (af.date_stop - interval '3 years')::date end -
-			 case when cbl.date_from > (af.date_stop - interval '4 years') and cbl.date_from <= (af.date_stop - interval '3 years') 
-					then cbl.date_from else (af.date_stop  +  interval '1 day' - interval '4 years')::date end 
+			(case when cbl.date_to < cast(cast($P{year} as text) || '-12-31' as date) - interval '3 years' then cbl.date_to else (cast(cast($P{year} as text) || '-12-31' as date) - interval '3 years')::date end -
+			 case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '4 years') and cbl.date_from <= (cast(cast($P{year} as text) || '-12-31' as date) - interval '3 years') 
+					then cbl.date_from else (cast(cast($P{year} as text) || '-12-31' as date)  +  interval '1 day' - interval '4 years')::date end 
 				+ 1) /
 				((cbl.date_to - cbl.date_from)::integer + 1)
 	end end as theor_amt_3,
-	case when cbl.date_from > (af.date_stop - interval '2 years') then 0 else
-		case when cbl.date_to <= af.date_stop - interval '3 years' then 0 else
+	case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '2 years') then 0 else
+		case when cbl.date_to <= cast(cast($P{year} as text) || '-12-31' as date) - interval '3 years' then 0 else
 			cbl.planned_amount * 
-			(case when cbl.date_to < af.date_stop - interval '2 years' then cbl.date_to else (af.date_stop - interval '2 years')::date end -
-			 case when cbl.date_from > (af.date_stop - interval '3 years') and cbl.date_from <= (af.date_stop - interval '2 years') 
-					then cbl.date_from else (af.date_stop  +  interval '1 day' - interval '3 years')::date end 
+			(case when cbl.date_to < cast(cast($P{year} as text) || '-12-31' as date) - interval '2 years' then cbl.date_to else (cast(cast($P{year} as text) || '-12-31' as date) - interval '2 years')::date end -
+			 case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '3 years') and cbl.date_from <= (cast(cast($P{year} as text) || '-12-31' as date) - interval '2 years') 
+					then cbl.date_from else (cast(cast($P{year} as text) || '-12-31' as date)  +  interval '1 day' - interval '3 years')::date end 
 				+ 1) /
 				((cbl.date_to - cbl.date_from)::integer + 1)
 	end end as theor_amt_2,
-	case when cbl.date_from > (af.date_stop - interval '1 years') then 0 else
-		case when cbl.date_to <= af.date_stop - interval '2 years' then 0 else
+	case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '1 years') then 0 else
+		case when cbl.date_to <= cast(cast($P{year} as text) || '-12-31' as date) - interval '2 years' then 0 else
 			cbl.planned_amount * 
-			(case when cbl.date_to < af.date_stop - interval '1 years' then cbl.date_to else (af.date_stop - interval '1 years')::date end -
-			 case when cbl.date_from > (af.date_stop - interval '2 years') and cbl.date_from <= (af.date_stop - interval '1 years') 
-					then cbl.date_from else (af.date_stop  +  interval '1 day' - interval '2 years')::date end 
+			(case when cbl.date_to < cast(cast($P{year} as text) || '-12-31' as date) - interval '1 years' then cbl.date_to else (cast(cast($P{year} as text) || '-12-31' as date) - interval '1 years')::date end -
+			 case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '2 years') and cbl.date_from <= (cast(cast($P{year} as text) || '-12-31' as date) - interval '1 years') 
+					then cbl.date_from else (cast(cast($P{year} as text) || '-12-31' as date)  +  interval '1 day' - interval '2 years')::date end 
 				+ 1) /
 				((cbl.date_to - cbl.date_from)::integer + 1)
 	end end as theor_amt_1,
-	case when cbl.date_from > af.date_stop then 0 else
-		case when cbl.date_to <= af.date_stop - interval '1 years' then 0 else
+	case when cbl.date_from > cast(cast($P{year} as text) || '-12-31' as date) then 0 else
+		case when cbl.date_to <= cast(cast($P{year} as text) || '-12-31' as date) - interval '1 years' then 0 else
 			cbl.planned_amount * 
-			(case when cbl.date_to < af.date_stop then cbl.date_to else af.date_stop end -
-			 case when cbl.date_from > (af.date_stop - interval '1 years') and cbl.date_from <= af.date_stop 
-					then cbl.date_from else (af.date_stop  +  interval '1 day' - interval '1 years')::date end 
+			(case when cbl.date_to < cast(cast($P{year} as text) || '-12-31' as date) then cbl.date_to else cast(cast($P{year} as text) || '-12-31' as date) end -
+			 case when cbl.date_from > (cast(cast($P{year} as text) || '-12-31' as date) - interval '1 years') and cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date) 
+					then cbl.date_from else (cast(cast($P{year} as text) || '-12-31' as date)  +  interval '1 day' - interval '1 years')::date end 
 				+ 1) /
 				((cbl.date_to - cbl.date_from)::integer + 1)
 	end end as theor_amt,	0 as act_amt
@@ -92,14 +92,13 @@ from
 	inner join crossovered_budget_lines cbl on cbl.crossovered_budget_id = cb.id
 	inner join account_analytic_account aaa on aaa.id = cbl.analytic_account_id
 	inner join account_budget_post abp on abp.id = cbl.general_budget_id
-	inner join account_fiscalyear af on af.id = $P{man_fiscalyear_id}
 	left outer join account_budget_type abt on abt.id = abp.budget_type_id
 where
 	res_company.id = $P{man_company_id}
 	and
     cb.company_id = res_company.id
 	and
-	cbl.date_from <= af.date_stop
+	cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date)
 	and 
 	(
 		(
@@ -156,40 +155,40 @@ select
 	(select min(cbl.date_from) from crossovered_budget_lines cbl
 	                       inner join crossovered_budget cb on cb.id = cbl.crossovered_budget_id
 	                       where cbl.general_budget_id = abp.id 
-				and cbl.date_from <= af.date_stop 
+				and cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date) 
 				and cb.id = $P{man_budget_id}
 			       group by cbl.general_budget_id) as start_date,
 	(select max(cbl.date_to) from crossovered_budget_lines cbl
 	                       inner join crossovered_budget cb on cb.id = cbl.crossovered_budget_id
 	                       where cbl.general_budget_id = abp.id 
-				and cbl.date_from <= af.date_stop 
+				and cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date) 
 				and cb.id = $P{man_budget_id}
 			       group by cbl.general_budget_id) as end_date,
     (select min(cbl.date_from) from crossovered_budget_lines cbl
 	                       inner join crossovered_budget cb on cb.id = cbl.crossovered_budget_id
 	                       where cbl.general_budget_id = abp.id 
-				and cbl.date_from <= af.date_stop 
+				and cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date) 
 				and cb.id = $P{man_budget_id}
 			       group by cbl.general_budget_id) as start_theor,
 	case
 		when (select max(cbl.date_to) from crossovered_budget_lines cbl
 	                       inner join crossovered_budget cb on cb.id = cbl.crossovered_budget_id
 	                       where cbl.general_budget_id = abp.id 
-				and cbl.date_from <= af.date_stop 
+				and cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date) 
 				and cb.id = $P{man_budget_id}
-			       group by cbl.general_budget_id) < af.date_stop
+			       group by cbl.general_budget_id) < cast(cast($P{year} as text) || '-12-31' as date)
 		then (select max(cbl.date_to) from crossovered_budget_lines cbl
 	                       inner join crossovered_budget cb on cb.id = cbl.crossovered_budget_id
 	                       where cbl.general_budget_id = abp.id 
-				and cbl.date_from <= af.date_stop 
+				and cbl.date_from <= cast(cast($P{year} as text) || '-12-31' as date) 
 				and cb.id = $P{man_budget_id}
 			       group by cbl.general_budget_id)
-		else af.date_stop
+		else cast(cast($P{year} as text) || '-12-31' as date)
 	end as end_theor,
 	ap.code as period,
 	date_part('year', aaly.date_start) as year,
-	date_part('year', af.date_start) as lyear,
-	date_part('year', af.date_start) - 4 as lyear_4,
+	$P{year} as lyear,
+	$P{year} - 4 as lyear_4,
 	0 as budget_amt,
 	0 as theor_amt_4,
 	0 as theor_amt_3,
@@ -204,7 +203,6 @@ from
 	inner join account_analytic_line aal on aal.account_id = aaa.id
 	inner join account_move_line aml on aml.id = aal.move_id
 	inner join res_company cbc on cbc.id = aml.company_id
-	inner join account_fiscalyear af on af.id = $P{man_fiscalyear_id}
 	inner join account_period ap on ap.id = aal.period_id
 	inner join account_fiscalyear aaly on aaly.id = ap.fiscalyear_id
 	inner join account_account aa on aa.id = aal.general_account_id
@@ -263,11 +261,11 @@ where
 	)
 	and
 	(
-		ap.date_start > (af.date_stop - interval '6 years')
+		ap.date_start > (cast(cast($P{year} as text) || '-12-31' as date) - interval '6 years')
 		and 
-		ap.date_stop <=  af.date_stop
+		ap.date_stop <=  cast(cast($P{year} as text) || '-12-31' as date)
 		and
-		ap.special = 'False'	
+		cast(substring(ap.code,1,2) as int) <> 0
 	)
 	order by budgetcode, budget_company, budgettype,  budget_pos, an_account, line_type, account, year]]>
 	</queryString>
